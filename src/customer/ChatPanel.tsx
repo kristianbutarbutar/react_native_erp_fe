@@ -26,6 +26,7 @@ export interface ChatPanelProps {
   activeToUID?: string;
   setActiveToUID?: (uid: string) => void;
 }
+export const WS_URI = 'ws://localhost:3004';
 
 const CALL_EXPIRY_MINUTES = 4;
 
@@ -376,7 +377,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
     }
 
     isConnectingRef.current = true;
-    const ws = new WebSocket(`ws://localhost:3004?uid=${uid}`);
+    const ws = new WebSocket(`${WS_URI}?uid=${uid}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
