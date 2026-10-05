@@ -1,6 +1,6 @@
 // apiService.ts
 import type { MenuItem } from './types';
-import {DOMAIN_WEB} from './global';
+import { DOMAIN_WEB } from './global';
 
 // API Endpoints & Base Configuration
 const API_BASE_URL = DOMAIN_WEB(); //'http://localhost:3000';
@@ -84,6 +84,8 @@ export const menuLoader = async (level: number, pid: string): Promise<MenuItem[]
   };
 
   try {
+    console.log("QUERY_OBJECT_ENDPOINT > ", QUERY_OBJECT_ENDPOINT);
+
     const response = await fetch(QUERY_OBJECT_ENDPOINT, {
       method: 'POST',
       headers: {
