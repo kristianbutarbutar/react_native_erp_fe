@@ -18,6 +18,8 @@ import { FilesExplorerPanel } from './FilesExplorerPanel';
 import NewPanel from './../panel/NewPanel';
 import MemberInfo from './MemberInfo';
 import { VoiceCallManager } from './VoiceCallManager';
+import {DOMAIN_WS_CHAT} from '../global';
+
 
 export interface ChatPanelProps {
   sessionid: string;
@@ -26,7 +28,7 @@ export interface ChatPanelProps {
   activeToUID?: string;
   setActiveToUID?: (uid: string) => void;
 }
-export const WS_URI = 'ws://localhost:3004';
+export const WS_URI = DOMAIN_WS_CHAT();
 
 const CALL_EXPIRY_MINUTES = 4;
 
