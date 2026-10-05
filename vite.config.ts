@@ -16,7 +16,11 @@ export default defineConfig({
         target: `${NODE_SERVICE}:3000`,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Optional: rewrite path if your Node backend doesn't expect '/api' prefix
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Vite Proxy] Incoming API Call -> Method: ${req.method}, Original URL: ${req.url}, Forwarding to Target: ${options.target}${proxyReq.path}`);
+          });
+        },
       },
       '/api/query-object': {
         target: `${NODE_SERVICE}:3000`,
@@ -32,91 +36,151 @@ export default defineConfig({
         target: `${NODE_SERVICE}:3000`,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Optional: rewrite path if your Node backend doesn't expect '/api' prefix
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Vite Proxy] Incoming API Call -> Method: ${req.method}, Original URL: ${req.url}, Forwarding to Target: ${options.target}${proxyReq.path}`);
+          });
+        },
       },
       '/api/save-object': {
         target: `${NODE_SERVICE}:3000`,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Optional: rewrite path if your Node backend doesn't expect '/api' prefix
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Vite Proxy] Incoming API Call -> Method: ${req.method}, Original URL: ${req.url}, Forwarding to Target: ${options.target}${proxyReq.path}`);
+          });
+        },
       },
       '/api/drop-object': {
         target: `${NODE_SERVICE}:3000`,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Optional: rewrite path if your Node backend doesn't expect '/api' prefix
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Vite Proxy] Incoming API Call -> Method: ${req.method}, Original URL: ${req.url}, Forwarding to Target: ${options.target}${proxyReq.path}`);
+          });
+        },
       },
       '/api/drop': {
         target: `${NODE_SERVICE}:3000`,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Optional: rewrite path if your Node backend doesn't expect '/api' prefix
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Vite Proxy] Incoming API Call -> Method: ${req.method}, Original URL: ${req.url}, Forwarding to Target: ${options.target}${proxyReq.path}`);
+          });
+        },
       },
       '/api/update-object': {
         target: `${NODE_SERVICE}:3000`,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Optional: rewrite path if your Node backend doesn't expect '/api' prefix
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Vite Proxy] Incoming API Call -> Method: ${req.method}, Original URL: ${req.url}, Forwarding to Target: ${options.target}${proxyReq.path}`);
+          });
+        },
       },
       '/api/query': {
         target: `${NODE_SERVICE}:3001`,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Optional: rewrite path if your Node backend doesn't expect '/api' prefix
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Vite Proxy] Incoming API Call -> Method: ${req.method}, Original URL: ${req.url}, Forwarding to Target: ${options.target}${proxyReq.path}`);
+          });
+        },
       },
       '/api/get-list': {
         target: `${NODE_SERVICE}:3001`,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Optional: rewrite path if your Node backend doesn't expect '/api' prefix
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Vite Proxy] Incoming API Call -> Method: ${req.method}, Original URL: ${req.url}, Forwarding to Target: ${options.target}${proxyReq.path}`);
+          });
+        },
       },
       '/api/colList': {
         target: `${NODE_SERVICE}:3001`,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Optional: rewrite path if your Node backend doesn't expect '/api' prefix
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Vite Proxy] Incoming API Call -> Method: ${req.method}, Original URL: ${req.url}, Forwarding to Target: ${options.target}${proxyReq.path}`);
+          });
+        },
       },
       '/api/get-object-schema': {
         target: `${NODE_SERVICE}:3001`,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Optional: rewrite path if your Node backend doesn't expect '/api' prefix
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Vite Proxy] Incoming API Call -> Method: ${req.method}, Original URL: ${req.url}, Forwarding to Target: ${options.target}${proxyReq.path}`);
+          });
+        },
       },
       '/api/html-to-pdf': {
         target: `${NODE_SERVICE}:3001`,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Optional: rewrite path if your Node backend doesn't expect '/api' prefix
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Vite Proxy] Incoming API Call -> Method: ${req.method}, Original URL: ${req.url}, Forwarding to Target: ${options.target}${proxyReq.path}`);
+          });
+        },
       },
       '/api/read': {
         target: `${NODE_SERVICE}:3002`,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Optional: rewrite path if your Node backend doesn't expect '/api' prefix
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Vite Proxy] Incoming API Call -> Method: ${req.method}, Original URL: ${req.url}, Forwarding to Target: ${options.target}${proxyReq.path}`);
+          });
+        },
       },
       '/api/upload': {
         target: `${NODE_SERVICE}:3002`,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Optional: rewrite path if your Node backend doesn't expect '/api' prefix
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Vite Proxy] Incoming API Call -> Method: ${req.method}, Original URL: ${req.url}, Forwarding to Target: ${options.target}${proxyReq.path}`);
+          });
+        },
       },
       '/api/chat': {
         target: `${NODE_SERVICE}:3003`,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Optional: rewrite path if your Node backend doesn't expect '/api' prefix
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Vite Proxy] Incoming API Call -> Method: ${req.method}, Original URL: ${req.url}, Forwarding to Target: ${options.target}${proxyReq.path}`);
+          });
+        },
       },
       '/api/chat/register': {
         target: `${NODE_SERVICE}:3003`,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Optional: rewrite path if your Node backend doesn't expect '/api' prefix
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Vite Proxy] Incoming API Call -> Method: ${req.method}, Original URL: ${req.url}, Forwarding to Target: ${options.target}${proxyReq.path}`);
+          });
+        },
       },
       '/api/loadChatUser': {
         target: `${NODE_SERVICE}:3003`,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Optional: rewrite path if your Node backend doesn't expect '/api' prefix
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Vite Proxy] Incoming API Call -> Method: ${req.method}, Original URL: ${req.url}, Forwarding to Target: ${options.target}${proxyReq.path}`);
+          });
+        },
       }
     },
   },

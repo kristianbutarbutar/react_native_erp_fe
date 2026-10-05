@@ -1,6 +1,6 @@
 // customer/ObjectPanel.ts
 
-import {DOMAIN_WEB, DOMAIN_QONLY_WEB} from '../../global';
+import { DOMAIN_WEB, DOMAIN_QONLY_WEB } from '../../global';
 
 export const QUERY_OBJECT_ENDPOINT = `${DOMAIN_WEB()}/api/query-object`;
 export const QUERY_TABS_ENDPOINT = `${DOMAIN_QONLY_WEB()}/api/query`;
@@ -92,7 +92,7 @@ export async function getTabs(
             recordid: input.recordid,
             ...(input.sessionId ? { sessionId: input.sessionId } : {}),
         };
-
+        console.log("getTabs > endpoint > ", endpoint);
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
