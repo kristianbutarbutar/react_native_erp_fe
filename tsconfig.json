@@ -1,13 +1,21 @@
 {
   "files": [],
   "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.node.json"
+    }
   ],
   "compilerOptions": {
-    "types": ["react-native", "react-native-web"],
+    "types": [
+      "react-native",
+      "react-native-web"
+    ],
     "module": "esnext",
     "moduleResolution": "bundler",
     "allowJs": true
-  }
+  },
+  "extends": "expo/tsconfig.base"
 }

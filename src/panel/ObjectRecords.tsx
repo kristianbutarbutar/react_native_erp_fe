@@ -261,6 +261,7 @@ export const ObjectRecords: React.FC<ObjectRecordsProps> = ({
 
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
+    const [searchSelections, setSearchSelections] = useState<any | null>(null);
 
     // Column Editing States
     const [formColumns, setFormColumns] = useState<any[]>([]);
@@ -340,6 +341,10 @@ export const ObjectRecords: React.FC<ObjectRecordsProps> = ({
         }
 
         return doc.body.innerHTML;
+    };
+
+    const searchSelectionsFunction = (search:any) => {
+        setSearchSelections(search);
     };
 
     const fetchRecords = async (start: number, end: number) => {
@@ -827,6 +832,8 @@ export const ObjectRecords: React.FC<ObjectRecordsProps> = ({
                         title={`Search ${formLabel}`}
                         onClose={() => setIsSearchPanelOpen(false)}
                         onSearch={handleSearchResult}
+                        searchSelectionsFunction = {searchSelectionsFunction}
+                        searchSelection = {searchSelections}
                     />
                 )}
 

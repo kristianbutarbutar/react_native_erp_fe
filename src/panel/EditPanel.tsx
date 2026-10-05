@@ -18,6 +18,7 @@ import { showForm, updateObject } from './ts/EditPanel';
 import { getObjectRecords } from './../apiService';
 import { viewObjectItem } from './../panel/ts/ViewPanel';
 import FilesExplorerPanel from './../customer/FilesExplorerPanel';
+import { doUpload } from './../customer/ts/ObjectFile';
 import HtmlPanel from './HtmlPanel';
 import DatePickerInput from './DatePickerInput';
 
@@ -35,9 +36,11 @@ export interface ColumnSchema {
   isdisabled?: string;
   isempty?: string;
   default?: string;
+  value?: string;
 }
 
 export interface EditPanelProps {
+  handleParentFunction?: () => void;
   visible?: boolean;
   onClose?: () => void;
   onSuccess?: () => void;
@@ -173,6 +176,9 @@ const editPanelTableStyles = `
     font-size: ${COMPACT_FONT_SIZE};
     margin: ${COMPACT_MARGIN};
   }
+  .web-file-input {
+    display: none;
+  }
 `;
 
 export const EditPanel: React.FC<EditPanelProps> = ({
@@ -180,6 +186,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
   onClose,
   onSuccess,
   title = 'Edit Record',
+  handleParentFunction,
   tableName = '',
   recordid = '',
   sessionId = '',
@@ -196,7 +203,6 @@ export const EditPanel: React.FC<EditPanelProps> = ({
   const [savedId, setSavedId] = useState<string>('');
 
   const [objectLabel, setObjectLabel] = useState<string>('');
-
   const [columnLayout, setColumnLayout] = useState<1 | 2>(2);
 
   // Sub-panel Visibility
@@ -281,7 +287,6 @@ export const EditPanel: React.FC<EditPanelProps> = ({
           rawResData.data?.columns ||
           [];
 
-
         setObjectLabel(recordResult?.data.objectLabel || '');
 
         let fetchedRecord: Record<string, any> | null = null;
@@ -333,6 +338,49 @@ export const EditPanel: React.FC<EditPanelProps> = ({
     }));
   };
 
+  const handlePickFiles = (col: ColumnSchema) => {
+    const key = col.col_name.toLowerCase();
+    if (typeof document === 'undefined') return;
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.multiple = true;
+    fileInput.className = 'web-file-input';
+
+    fileInput.onchange = (e: any) => {
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
+
+      const currentFiles = Array.isArray(formData[key]) ? formData[key] : [];
+      const newFiles = Array.from(files).map((file: any) => ({
+        uri: URL.createObjectURL(file),
+        name: file.name,
+        type: file.type || 'application/octet-stream',
+        originFile: file,
+      }));
+
+      const combinedFiles = [...currentFiles, ...newFiles];
+
+      setFormData((prev) => ({
+        ...prev,
+        [key]: combinedFiles,
+      }));
+    };
+
+    fileInput.click();
+  };
+
+  const handleRemoveFile = (colName: string, indexToRemove: number) => {
+    const key = colName.toLowerCase();
+    const currentFiles = Array.isArray(formData[key]) ? formData[key] : [];
+    const updatedFiles = currentFiles.filter((_, idx) => idx !== indexToRemove);
+
+    setFormData((prev) => ({
+      ...prev,
+      [key]: updatedFiles,
+    }));
+  };
+
   const handleOpenHtmlEditor = async (colName: string) => {
     setActiveHtmlColName(colName);
     const rawValue = formData[colName.toLowerCase()];
@@ -350,12 +398,9 @@ export const EditPanel: React.FC<EditPanelProps> = ({
             },
           ],
         });
-        //console.log("recordResult > EditPanel.tsx > ", JSON.stringify(recordResult));
 
         const __record = recordResult?.data?.data?.[0] || null;
-
         setHtmlRecordData(__record);
-
       } catch (err) {
         console.error('Error fetching uploaded files record for html editor:', err);
         setHtmlRecordData(null);
@@ -418,6 +463,10 @@ export const EditPanel: React.FC<EditPanelProps> = ({
     return val;
   };
 
+  const runReloadProp = () => {
+        handleParentFunction?.();
+        console.log("runReloadProp");
+  }
   const handleSaveRecord = async () => {
     if (!tableName || !recordid) return;
 
@@ -425,16 +474,46 @@ export const EditPanel: React.FC<EditPanelProps> = ({
     setErrorMessage('');
 
     try {
-      const columnData = Object.keys(formData).map((key) => {
-        let val = formData[key];
+      const finalFormData = { ...formData };
+
+      for (const col of columns) {
+        const key = col.col_name.toLowerCase();
+        const htmlType = col.html_type?.toLowerCase().trim() || '';
+        const filesToUpload = finalFormData[key];
+
+        if (htmlType === 'file' && Array.isArray(filesToUpload) && filesToUpload.length > 0) {
+          const uploadResult = await doUpload({
+            files: filesToUpload,
+            sessionId: sessionId || '',
+          });
+
+          if (uploadResult && uploadResult.success) {
+            finalFormData[key] = uploadResult.data?.id || uploadResult.id || uploadResult.data;
+          } else {
+            throw new Error(uploadResult.error || `File upload failed for column: ${col.col_name}`);
+          }
+        }
+      }
+
+      const columnData = Object.keys(finalFormData).map((key) => {
+        let val = finalFormData[key];
         const matchedCol = columns.find((c) => c.col_name.toLowerCase() === key.toLowerCase());
         const htmlType = matchedCol?.html_type?.toLowerCase().trim() || '';
         const dtType = matchedCol?.dt_type?.toLowerCase().trim() || '';
         const isTimestamp = htmlType === 'date' || htmlType === 'timestamp' || htmlType.includes('timestamp') || dtType.includes('date') || dtType.includes('timestamp');
         const isHtml = htmlType === 'html';
+        const isDropdown = htmlType === 'dropdown';
 
         if (isHtml) {
           val = savedId !== '' ? savedId : val;
+        }
+
+        if (isDropdown && val !== undefined && val !== null) {
+          const strVal = String(val);
+          const bracketMatch = strVal.match(/^\[(.*?)\]/);
+          if (bracketMatch && bracketMatch[1]) {
+            val = bracketMatch[1];
+          }
         }
 
         if (isTimestamp && val !== undefined && val !== null && String(val).trim() !== '') {
@@ -457,8 +536,11 @@ export const EditPanel: React.FC<EditPanelProps> = ({
       const result = await updateObject(payload);
 
       if (result && result.success) {
+
+        if (typeof handleParentFunction === 'function') handleParentFunction();
         if (typeof onSuccess === 'function') onSuccess();
         if (typeof onClose === 'function') onClose();
+        
       } else {
         setErrorMessage(result?.error || 'Failed to update record.');
       }
@@ -528,25 +610,50 @@ export const EditPanel: React.FC<EditPanelProps> = ({
             )}
           </View>
         ) : isFileField ? (
-          <View style={styles.fileFieldContainer}>
-            <TextInput
-              style={[styles.textInput, isDesktop && styles.desktopCompactInput, isDisabled && styles.disabledField]}
-              value={String(rawValue)}
-              onChangeText={(text) => !isDisabled && handleFieldChange(col.col_name, text)}
-              placeholder="Enter file value or path..."
-              editable={!isDisabled}
-            />
-            {!isDisabled && (
-              <TouchableOpacity
-                style={styles.showFilesBtn}
-                onPress={() => {
-                  setSelectedFileValue(rawValue);
-                  setShowFilesExplorer(true);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.showFilesBtnText}>files</Text>
-              </TouchableOpacity>
+          <View style={styles.fileFieldContainerCol}>
+            <View style={styles.fileInputRow}>
+              <TextInput
+                style={[styles.textInput, isDesktop && styles.desktopCompactInput, isDisabled && styles.disabledField, { flex: 1, marginTop: 0 }]}
+                value={typeof rawValue === 'string' ? rawValue : Array.isArray(rawValue) ? rawValue.map((f: any) => f.name).join(', ') : ''}
+                onChangeText={(text) => !isDisabled && handleFieldChange(col.col_name, text)}
+                placeholder="Enter file value or path..."
+                editable={!isDisabled}
+              />
+              {!isDisabled && (
+                <TouchableOpacity
+                  style={[styles.fileActionBtn, isDesktop && styles.desktopCompactFileActionBtn]}
+                  onPress={() => handlePickFiles(col)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.fileActionBtnText, isDesktop && styles.desktopCompactBtnText]}>Upload</Text>
+                </TouchableOpacity>
+              )}
+              {!isDisabled && (
+                <TouchableOpacity
+                  style={[styles.fileActionBtn, isDesktop && styles.desktopCompactFileActionBtn]}
+                  onPress={() => {
+                    setSelectedFileValue(rawValue);
+                    setShowFilesExplorer(true);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.fileActionBtnText, isDesktop && styles.desktopCompactBtnText]}>File</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {Array.isArray(rawValue) && rawValue.length > 0 && (
+              <View style={styles.fileChipContainer}>
+                {rawValue.map((fileItem: any, fIdx: number) => (
+                  <View key={`file-${fIdx}`} style={styles.fileChip}>
+                    <Text style={styles.fileChipText} numberOfLines={1}>{fileItem.name || String(fileItem)}</Text>
+                    {!isDisabled && (
+                      <TouchableOpacity onPress={() => handleRemoveFile(col.col_name, fIdx)}>
+                        <CloseIcon color="#DC2626" size={10} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+              </View>
             )}
           </View>
         ) : isIconField ? (
@@ -1231,23 +1338,62 @@ const styles = StyleSheet.create({
     gap: 8,
     width: '100%',
   },
-  showFilesBtn: {
-    paddingHorizontal: 12,
+  fileFieldContainerCol: {
+    flexDirection: 'column',
+    width: '100%',
+    marginTop: 2,
+  },
+  fileInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    width: '100%',
+  },
+  fileActionBtn: {
     height: 38,
+    paddingHorizontal: 12,
     backgroundColor: '#4F46E5',
     borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
   },
-  showFilesBtnText: {
+  desktopCompactFileActionBtn: {
+    height: 20,
+    paddingHorizontal: 6,
+    borderRadius: 2,
+    marginTop: 0,
+  },
+  fileActionBtnText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
   },
+  fileChipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 6,
+  },
+  fileChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderWidth: 0.5,
+    borderColor: '#CBD5E1',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    gap: 4,
+  },
+  fileChipText: {
+    fontSize: 10,
+    color: '#334155',
+    maxWidth: 150,
+  },
   htmlEditorBtn: {
     paddingHorizontal: 12,
-    height: 38,
+    height: 31,
     backgroundColor: '#4F46E5',
     borderRadius: 6,
     alignItems: 'center',
@@ -1256,7 +1402,7 @@ const styles = StyleSheet.create({
   },
   htmlEditorBtnText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   iconTriggerBox: {

@@ -271,7 +271,6 @@ export const ViewPanel: React.FC<ViewPanelProps> = ({
   const [columnLayout, setColumnLayout] = useState<1 | 2>(2);
   const [isSummaryMenuOpen, setIsSummaryMenuOpen] = useState<boolean>(false);
 
-
   // Sub-panel Visibility States
   const [showEditPanel, setShowEditPanel] = useState<boolean>(false);
   const [showDeletePanel, setShowDeletePanel] = useState<boolean>(false);
@@ -398,20 +397,20 @@ export const ViewPanel: React.FC<ViewPanelProps> = ({
   };
 
   const handleEditPress = () => {
-    if (onEditClick) {
+    setShowEditPanel(true);
+    //if (typeof onEditClick === 'function') onEditClick();
+    /*if (onEditClick) {
       onEditClick();
     } else {
       setShowEditPanel(true);
-    }
+    }*/
   };
 
-  // Handler for opening HtmlPanel top-stack overlay with current record data
   const handleOpenHtmlEditor = () => {
     setIsSummaryMenuOpen(false);
     setShowHtmlPanel(true);
   };
 
-  // Handler for existing Print submenu: closes menu and triggers window.print()
   const handlePrintRecord = () => {
     setIsSummaryMenuOpen(false);
     if (typeof window !== 'undefined') {
@@ -421,7 +420,6 @@ export const ViewPanel: React.FC<ViewPanelProps> = ({
     }
   };
 
-  // Handler for "Selected for Printing" submenu: pushes record details to ref and closes popup menu
   const handleSelectedForPrinting = () => {
     setIsSummaryMenuOpen(false);
     if (selectedRecordForPrinting && tableName && recordid) {
@@ -430,7 +428,6 @@ export const ViewPanel: React.FC<ViewPanelProps> = ({
         recordid: String(recordid).trim(),
         sessionid: sessionId || '',
       });
-      console.log('Record pushed to selectedRecordForPrinting:', selectedRecordForPrinting.current);
     }
   };
 
@@ -540,7 +537,7 @@ export const ViewPanel: React.FC<ViewPanelProps> = ({
               >
                 {isMaximized ? <MinimizeIcon color="#475569" size={10} /> : <MaximizeIcon color="#475569" size={10} />}
               </TouchableOpacity>
-              <Text style={[styles.titleText, isDesktop && styles.desktopCompactTitle]}>{title}</Text>
+              <Text style={[styles.titleText, isDesktop && styles.desktopCompactTitle]}>{objectLabel}</Text>
             </View>
 
             <TouchableOpacity
@@ -744,7 +741,7 @@ export const ViewPanel: React.FC<ViewPanelProps> = ({
         </View>
       </div>
 
-      {/* HTML PANEL PORTAL - OPEN ON TOP OF ALL OBJECTS WITH CURRENT RECORD PROPS */}
+      {/* HTML PANEL PORTAL */}
       {showHtmlPanel &&
         renderPortal(
           <HtmlPanel
@@ -761,13 +758,18 @@ export const ViewPanel: React.FC<ViewPanelProps> = ({
       {showEditPanel &&
         renderPortal(
           <EditPanel
-            visible={showEditPanel}
-            tableName={tableName}
-            recordid={recordid}
-            sessionId={sessionId}
+            visible={showEditPanel} 
+            tableName={tableName} 
+            recordid={recordid} 
+            sessionId={sessionId} 
             onClose={() => {
               setShowEditPanel(false);
-              loadData();
+              loadData(); // Re-loads ViewPanel data on close
+              console.log("ViewPanel > EditPanel > setShowEditPanel false");
+              if (onEditSuccess) onEditSuccess();
+            }} 
+            onSuccess={() => {
+              loadData(); // <--- Instantly reloads ViewPanel data!
               if (onEditSuccess) onEditSuccess();
             }}
           />,
@@ -1166,7 +1168,9 @@ const styles = StyleSheet.create({
     margin: COMPACT_MARGIN,
   },
   doubleColRight: {
-    borderRightWidth: 0, marginTop: 1, paddingTop: 1,
+    borderRightWidth: 0,
+    marginTop: 1,
+    paddingTop: 1,
     paddingLeft: 8,
   },
   desktopCompactDoubleColRight: {
@@ -1177,7 +1181,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   fieldInnerContainer: {
-    flexDirection: 'column', paddingTop: 1, marginTop: 1,
+    flexDirection: 'column',
+    paddingTop: 1,
+    marginTop: 1,
     alignItems: 'flex-start',
   },
   desktopCompactFieldInner: {
@@ -1187,22 +1193,13 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#334155', paddingTop: 1,
-    marginTop: 0
+    color: '#334155',
+    paddingTop: 1,
+    marginTop: 0,
   },
   desktopCompactFieldLabel: {
     fontSize: COMPACT_FONT_SIZE,
     fontWeight: '700',
-  },
-  fieldKeyText: {
-    fontSize: 10,
-    color: '#94A3B8',
-    fontFamily: 'monospace',
-    marginBottom: 1, marginTop: 1,
-  },
-  desktopCompactFieldKey: {
-    fontSize: `calc(${COMPACT_FONT_SIZE} - 1px)`,
-    fontFamily: 'monospace',
   },
   valueText: {
     fontSize: 13,

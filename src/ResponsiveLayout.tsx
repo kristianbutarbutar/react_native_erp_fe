@@ -83,9 +83,9 @@ const tableStyles = `
     overflow: auto;
     margin-top: 2px;
     border: 1px solid #E2E8F0;
-    border-radius: 8px;
+    border-radius: 12px;
     background-color: #ffffff;
-    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
   }
   .custom-html-table-wrapper table {
     width: 100%;
@@ -103,7 +103,7 @@ const tableStyles = `
     letter-spacing: 0.05em;
     font-size: 10px;
     text-align: left;
-    padding: 6px 10px;
+    padding: 8px 12px;
     border-bottom: 2px solid #E2E8F0;
     border-right: 1px solid #F1F5F9;
     white-space: nowrap;
@@ -112,7 +112,7 @@ const tableStyles = `
     z-index: 10;
   }
   .custom-html-table-wrapper td {
-    padding: 6px 10px;
+    padding: 8px 12px;
     border-bottom: 1px solid #F1F5F9;
     border-right: 1px solid #F1F5F9;
     vertical-align: middle;
@@ -174,8 +174,8 @@ const CustomAlertBox: React.FC<CustomAlertBoxProps> = ({ visible, title, message
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(15, 23, 42, 0.45)',
-        backdropFilter: 'blur(4px)',
+        backgroundColor: 'rgba(15, 23, 42, 0.5)',
+        backdropFilter: 'blur(6px)',
         pointerEvents: 'auto',
       },
       onMouseDown: (e: React.MouseEvent) => e.stopPropagation(),
@@ -193,7 +193,6 @@ const CustomAlertBox: React.FC<CustomAlertBoxProps> = ({ visible, title, message
     createElement(
       View,
       { style: styles.modalCard },
-      // Header Section
       createElement(
         View,
         { style: styles.modalHeader },
@@ -214,13 +213,11 @@ const CustomAlertBox: React.FC<CustomAlertBoxProps> = ({ visible, title, message
           createElement(Text, { style: styles.closeIconText }, '✕')
         )
       ),
-      // Body Message Section
       createElement(
         ScrollView,
         { style: styles.modalBodyScroll, contentContainerStyle: styles.modalBodyContent },
         createElement(Text, { style: styles.modalMessage }, message)
       ),
-      // Footer Action Buttons
       createElement(
         View,
         { style: styles.modalFooter },
@@ -265,6 +262,10 @@ export const ResponsiveLayout: React.FC = () => {
 
   const SESSION_ID = 'sess_12345';
 
+  // Theme State: 'black' | 'oldBlue' | 'grey'
+  const [currentTheme, setCurrentTheme] = useState<'black' | 'oldBlue' | 'grey'>('oldBlue');
+  const [isLeftMenuCollapsed, setIsLeftMenuCollapsed] = useState<boolean>(false);
+
   const selectedRecordForPrinting = useRef<
     Array<{ objectid: string; recordid: string; sessionid: string }>
   >([]);
@@ -273,10 +274,8 @@ export const ResponsiveLayout: React.FC = () => {
   const [isChatPanelOpen, setIsChatPanelOpen] = useState<boolean>(false);
   const [isLoginPanelOpen, setIsLoginPanelOpen] = useState<boolean>(false);
 
-  // AlertPanel hook and visibility states
   const [isAlertPanelVisible, setIsAlertPanelVisible] = useState<boolean>(false);
 
-  // Custom alert interception state
   const [customAlert, setCustomAlert] = useState<{
     visible: boolean;
     title: string;
@@ -590,6 +589,27 @@ export const ResponsiveLayout: React.FC = () => {
     fetchContentForMenu(selectedMenu, newStart, newEnd);
   };
 
+  // Helper theme colors and text rules
+  const getThemeBackground = () => {
+    switch (currentTheme) {
+      case 'black': return '#0F172A';
+      case 'oldBlue': return '#1E3A8A';
+      case 'grey': return '#E2E8F0';
+    }
+  };
+
+  const getThemeTextColor = () => {
+    return currentTheme === 'grey' ? '#0F172A' : '#FFFFFF';
+  };
+
+  const getThemeItemActiveBg = () => {
+    switch (currentTheme) {
+      case 'black': return 'rgba(255, 255, 255, 0.15)';
+      case 'oldBlue': return 'rgba(255, 255, 255, 0.2)';
+      case 'grey': return '#CBD5E1';
+    }
+  };
+
   const renderDynamicContent = () => {
     const targetTsx = (selectedMenu as any)?.target_tsx?.trim() || '';
     const pubTsx = (selectedMenu as any)?.pub_tsx?.trim() || '';
@@ -705,7 +725,7 @@ export const ResponsiveLayout: React.FC = () => {
     objectid: selectedMenu?.formid,
     variant: 'primary',
     action: () => setIsNewPanelOpen(true),
-    style: { height: 26, paddingVertical: 0, paddingHorizontal: 8 },
+    style: { height: 28, paddingVertical: 0, paddingHorizontal: 10, borderRadius: 6 },
   };
 
   const isUpwardDisabled = rowStart <= 1 || loadingContent;
@@ -727,7 +747,7 @@ export const ResponsiveLayout: React.FC = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: isTransparent ? 'transparent' : 'rgba(0, 0, 0, 0.4)',
+          backgroundColor: isTransparent ? 'transparent' : 'rgba(0, 0, 0, 0.45)',
           pointerEvents: isTransparent ? 'none' : 'auto',
         }
       },
@@ -754,7 +774,40 @@ export const ResponsiveLayout: React.FC = () => {
       {createElement('style', null, tableStyles)}
 
       <View style={styles.container}>
-        <View style={styles.banner}>
+        {/* Banner with split containers: Left (3 Circles) and Right (topPageMenuOnRight) */}
+        <View style={[styles.banner, { backgroundColor: getThemeBackground() }]}>
+          {/* Container 1: Top-Left 3 Comfort Color Selector Circles */}
+          <View style={styles.themeSelectorContainer}>
+            <TouchableOpacity
+              style={[
+                styles.themeCircle,
+                { backgroundColor: '#0F172A' },
+                currentTheme === 'black' && styles.themeCircleActive,
+              ]}
+              onPress={() => setCurrentTheme('black')}
+              accessibilityLabel="Select Black Theme"
+            />
+            <TouchableOpacity
+              style={[
+                styles.themeCircle,
+                { backgroundColor: '#1E3A8A' },
+                currentTheme === 'oldBlue' && styles.themeCircleActive,
+              ]}
+              onPress={() => setCurrentTheme('oldBlue')}
+              accessibilityLabel="Select Old Blue Theme"
+            />
+            <TouchableOpacity
+              style={[
+                styles.themeCircle,
+                { backgroundColor: '#94A3B8' },
+                currentTheme === 'grey' && styles.themeCircleActive,
+              ]}
+              onPress={() => setCurrentTheme('grey')}
+              accessibilityLabel="Select Grey Theme"
+            />
+          </View>
+
+          {/* Container 2: Top-Right topPageMenuOnRight items */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -770,6 +823,7 @@ export const ResponsiveLayout: React.FC = () => {
                   key={`top-right-menu-${idx}`}
                   style={[
                     styles.bannerRightMenuItem,
+                    { backgroundColor: getThemeItemActiveBg() },
                     menuItem.isDisabled && styles.bannerRightMenuItemDisabled,
                   ]}
                   disabled={menuItem.isDisabled}
@@ -794,6 +848,7 @@ export const ResponsiveLayout: React.FC = () => {
                   <Text
                     style={[
                       styles.bannerRightMenuText,
+                      { color: getThemeTextColor() },
                       menuItem.isDisabled && styles.bannerRightMenuTextDisabled,
                     ]}
                   >
@@ -813,7 +868,8 @@ export const ResponsiveLayout: React.FC = () => {
           </ScrollView>
         </View>
 
-        <View style={styles.topMenu}>
+        {/* Top Menu Box (Dynamic Theme) with 0px border line */}
+        <View style={[styles.topMenu, { backgroundColor: getThemeBackground(), borderBottomWidth: 0 }]}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -823,7 +879,7 @@ export const ResponsiveLayout: React.FC = () => {
             ]}
           >
             {loadingTopMenu ? (
-              <ActivityIndicator size="small" color="#4F46E5" />
+              <ActivityIndicator size="small" color={getThemeTextColor()} />
             ) : (
               Array.isArray(topMenuData) &&
               topMenuData.map((item) => {
@@ -831,16 +887,20 @@ export const ResponsiveLayout: React.FC = () => {
                 return (
                   <TouchableOpacity
                     key={`top-${item.id}`}
-                    style={[styles.topMenuItem, isActive && styles.activeTopMenuItem]}
+                    style={[
+                      styles.topMenuItem,
+                      isActive && { backgroundColor: getThemeItemActiveBg() },
+                    ]}
                     onPress={() => handleSelectMenu(item)}
                   >
                     <Text
                       style={[
                         styles.topMenuText,
+                        { color: getThemeTextColor(), opacity: isActive ? 1 : 0.8 },
                         isActive && styles.activeTopMenuText,
                       ]}
                     >
-                      {createElement('span', null, renderFontAwesomeIcon(item.icon), item.label)}
+                      {createElement('span', null, renderFontAwesomeIcon(item.icon), ` ${item.label}`)}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -896,38 +956,69 @@ export const ResponsiveLayout: React.FC = () => {
           </View>
         )}
 
+        {/* Main Body */}
         <View style={[styles.mainBody, !isDesktop && styles.mainBodyMobile]}>
           {isDesktop && (
-            <View style={styles.leftMenu}>
-              <Text style={styles.sectionHeader}>Categories</Text>
-              {loadingLeftMenu ? (
-                <ActivityIndicator size="small" color="#4F46E5" style={{ marginTop: 12 }} />
-              ) : (
-                <ScrollView showsVerticalScrollIndicator={false}>
-                  {Array.isArray(leftMenuData) &&
-                    leftMenuData.map((item) => {
-                      const isActive = selectedMenu?.id === item.id;
-                      return (
-                        <TouchableOpacity
-                          key={`left-${item.id}`}
-                          style={[
-                            styles.leftMenuItem,
-                            isActive && styles.activeLeftMenuItem,
-                          ]}
-                          onPress={() => handleSelectMenu(item)}
-                        >
-                          <Text
+            <View
+              style={[
+                styles.leftMenu,
+                { backgroundColor: getThemeBackground(), borderRightWidth: 0 },
+                isLeftMenuCollapsed && styles.leftMenuCollapsed,
+              ]}
+            >
+              <View style={styles.leftMenuHeaderRow}>
+                {!isLeftMenuCollapsed && (
+                  <Text
+                    style={[
+                      styles.sectionHeader,
+                      { color: currentTheme === 'grey' ? '#475569' : 'rgba(255,255,255,0.6)', flex: 1, marginBottom: 0 },
+                    ]}
+                  >
+                    Categories
+                  </Text>
+                )}
+                <TouchableOpacity
+                  style={styles.leftMenuCollapseBtn}
+                  onPress={() => setIsLeftMenuCollapsed(!isLeftMenuCollapsed)}
+                  accessibilityLabel="Toggle Left Menu"
+                >
+                  <Text style={[styles.leftMenuCollapseBtnText, { color: getThemeTextColor() }]}>
+                    {isLeftMenuCollapsed ? '›' : '‹'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {!isLeftMenuCollapsed && (
+                loadingLeftMenu ? (
+                  <ActivityIndicator size="small" color={getThemeTextColor()} style={{ marginTop: 12 }} />
+                ) : (
+                  <ScrollView showsVerticalScrollIndicator={false}>
+                    {Array.isArray(leftMenuData) &&
+                      leftMenuData.map((item) => {
+                        const isActive = selectedMenu?.id === item.id;
+                        return (
+                          <TouchableOpacity
+                            key={`left-${item.id}`}
                             style={[
-                              styles.leftMenuText,
-                              isActive && styles.activeLeftMenuText,
+                              styles.leftMenuItem,
+                              isActive && { backgroundColor: getThemeItemActiveBg() },
                             ]}
+                            onPress={() => handleSelectMenu(item)}
                           >
-                            {createElement('span', null, renderFontAwesomeIcon(item.icon), item.label)}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                </ScrollView>
+                            <Text
+                              style={[
+                                styles.leftMenuText,
+                                { color: getThemeTextColor(), textAlign: 'justify' },
+                                isActive && { fontWeight: '700' },
+                              ]}
+                            >
+                              {createElement('span', null, renderFontAwesomeIcon(item.icon), ` ${item.label}`)}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                  </ScrollView>
+                )
               )}
             </View>
           )}
@@ -987,9 +1078,10 @@ export const ResponsiveLayout: React.FC = () => {
           </View>
         </View>
 
-        <View style={styles.footer}>
+        {/* Footer Box (Dynamic Theme) with 0px border line */}
+        <View style={[styles.footer, { backgroundColor: getThemeBackground(), borderTopWidth: 0 }]}>
           {loadingFooter ? (
-            <ActivityIndicator size="small" color="#64748B" />
+            <ActivityIndicator size="small" color={getThemeTextColor()} />
           ) : Array.isArray(footerData) && footerData.length > 0 ? (
             footerData.map((item) => {
               const targetTsx = (item as any)?.target_tsx?.trim();
@@ -1002,7 +1094,7 @@ export const ResponsiveLayout: React.FC = () => {
                   key={`footer-${item.id}`}
                   style={[
                     styles.footerItem,
-                    isActive && styles.activeFooterItem,
+                    isActive && { backgroundColor: getThemeItemActiveBg() },
                     !hasTsx && styles.footerItemDisabled,
                   ]}
                   disabled={!hasTsx}
@@ -1015,7 +1107,8 @@ export const ResponsiveLayout: React.FC = () => {
                   <Text
                     style={[
                       styles.footerText,
-                      isActive && styles.activeFooterText,
+                      { color: getThemeTextColor(), textAlign: 'justify' },
+                      isActive && { fontWeight: '700' },
                       !hasTsx && styles.footerTextDisabled,
                     ]}
                   >
@@ -1025,7 +1118,7 @@ export const ResponsiveLayout: React.FC = () => {
               );
             })
           ) : (
-            <Text style={styles.footerText}>
+            <Text style={[styles.footerText, { color: getThemeTextColor(), textAlign: 'justify' }]}>
               © {new Date().getFullYear()} E-Commerce Store. All rights reserved.
             </Text>
           )}
@@ -1088,7 +1181,6 @@ export const ResponsiveLayout: React.FC = () => {
           visible={isNewPanelOpen}
           onClose={() => {
             setIsNewPanelOpen(false);
-            refreshTableData();
           }}
           title={`New Record (${selectedMenu?.label || 'Item'})`}
           tableName={selectedMenu?.formid || selectedMenu?.id || ''}
@@ -1101,7 +1193,6 @@ export const ResponsiveLayout: React.FC = () => {
           visible={isEditPanelOpen}
           onClose={() => {
             setIsEditPanelOpen(false);
-            refreshTableData();
           }}
           title={`Edit Record (${selectedMenu?.label || 'Item'})`}
           tableName={selectedMenu?.formid || selectedMenu?.id || ''}
@@ -1115,12 +1206,10 @@ export const ResponsiveLayout: React.FC = () => {
           visible={isDeletePanelOpen}
           onClose={() => {
             setIsDeletePanelOpen(false);
-            refreshTableData();
           }}
           onSuccess={() => {
             setIsDeletePanelOpen(false);
             setIsViewPanelOpen(false);
-            refreshTableData();
           }}
           title={`Delete Record (${selectedMenu?.label || 'Item'})`}
           tableName={selectedMenu?.formid || selectedMenu?.id || ''}
@@ -1135,9 +1224,8 @@ export const ResponsiveLayout: React.FC = () => {
           onClose={() => setIsViewPanelOpen(false)}
           onDeleteSuccess={() => {
             setIsViewPanelOpen(false);
-            refreshTableData();
           }}
-          onEditSuccess={refreshTableData}
+          onEditSuccess={() => {}}
           title={`View Record (${selectedMenu?.label || 'Item'})`}
           tableName={selectedMenu?.formid || selectedMenu?.id || ''}
           recordid={recordId || selectedRecordId}
@@ -1175,12 +1263,34 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   banner: {
-    minHeight: 32,
-    backgroundColor: '#4338CA',
+    minHeight: 40,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+  },
+  themeSelectorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 0,
+  },
+  themeCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.7)',
+    cursor: 'pointer',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  themeCircleActive: {
+    borderColor: '#38BDF8',
+    transform: [{ scale: 1.15 }],
   },
   bannerRightMenuContent: {
     flexDirection: 'row',
@@ -1190,39 +1300,36 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   bannerRightMenuItem: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
   bannerRightMenuItemDisabled: {
     opacity: 0.5,
   },
   bannerRightMenuText: {
-    color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '500',
+    textAlign: 'justify',
   },
   bannerRightMenuTextDisabled: {
-    color: '#CBD5E1',
+    color: '#94A3B8',
   },
   printBadgeLabel: {
     backgroundColor: '#EF4444',
     color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '700',
-    paddingHorizontal: 4,
+    paddingHorizontal: 5,
     paddingVertical: 1,
-    borderRadius: 8,
+    borderRadius: 10,
     overflow: 'hidden',
   },
   topMenu: {
-    height: 34,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    height: 38,
+    borderBottomWidth: 0,
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
   },
   topMenuContent: {
     alignItems: 'center',
@@ -1232,33 +1339,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   topMenuItem: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginHorizontal: 2,
-    marginVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginHorizontal: 3,
+    borderRadius: 6,
     justifyContent: 'center',
-  },
-  activeTopMenuItem: {
-    backgroundColor: '#EEF2FF',
   },
   topMenuText: {
     fontSize: 11,
-    color: '#64748B',
     fontWeight: '500',
+    textAlign: 'justify',
   },
   activeTopMenuText: {
-    color: '#4F46E5',
     fontWeight: '700',
   },
   mobileSubBar: {
-    height: 32,
+    height: 34,
     backgroundColor: '#F1F5F9',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
   },
   hamburgerButton: {
     flexDirection: 'row',
@@ -1267,7 +1369,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   hamburgerIcon: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
     color: '#4F46E5',
     marginRight: 6,
@@ -1280,7 +1382,7 @@ const styles = StyleSheet.create({
   mobileDrawer: {
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
-    padding: 8,
+    padding: 10,
     backgroundColor: '#FFFFFF',
   },
   mainBody: {
@@ -1293,49 +1395,66 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   leftMenu: {
-    width: 200,
-    borderRightWidth: 1,
-    borderRightColor: '#E2E8F0',
-    padding: 8,
-    backgroundColor: '#FFFFFF',
+    width: 220,
+    borderRightWidth: 0,
+    padding: 12,
+  },
+  leftMenuCollapsed: {
+    width: 48,
+    padding: 4,
+    alignItems: 'center',
+  },
+  leftMenuHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  leftMenuCollapseBtn: {
+    width: 24,
+    height: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 'auto',
+  },
+  leftMenuCollapseBtnText: {
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   sectionHeader: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#94A3B8',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    marginBottom: 6,
-    marginHorizontal: 2,
+    marginBottom: 8,
+    marginHorizontal: 4,
   },
   leftMenuItem: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginVertical: 2,
-    marginHorizontal: 2,
-    borderRadius: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginVertical: 3,
+    borderRadius: 6,
   },
-  activeLeftMenuItem: {
-    backgroundColor: '#4F46E5',
-  },
+  activeLeftMenuItem: {},
   leftMenuText: {
     fontSize: 11,
-    color: '#475569',
     fontWeight: '500',
+    textAlign: 'justify',
   },
   activeLeftMenuText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   content: {
     flex: 1,
     flexGrow: 1,
     width: '100%',
-    padding: 6,
+    padding: 12,
     backgroundColor: '#F8FAFC',
   },
   contentHeaderContainer: {
-    marginBottom: 2,
+    marginBottom: 8,
     padding: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1343,11 +1462,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   contentTitle: {
-    fontSize: 11,
-    textAlign: 'right',
-    paddingLeft: 12,
-    paddingBottom: 0,
-    marginBottom: 0,
+    fontSize: 13,
+    textAlign: 'left',
+    paddingLeft: 4,
     fontWeight: '700',
     color: '#0F172A',
   },
@@ -1373,12 +1490,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tableNavIconButton: {
-    width: 26,
-    height: 26,
+    width: 28,
+    height: 28,
     backgroundColor: '#EEF2FF',
     borderWidth: 1,
     borderColor: '#C7D2FE',
-    borderRadius: 4,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 4,
@@ -1403,16 +1520,20 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   emptyStateContainer: {
-    padding: 24,
+    padding: 32,
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
   },
   emptyStateTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: '#334155',
     marginBottom: 4,
@@ -1423,39 +1544,33 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   footer: {
-    minHeight: 36,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    minHeight: 40,
+    borderTopWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    backgroundColor: '#FFFFFF',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
   },
   footerItem: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    margin: 2,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    margin: 3,
+    borderRadius: 8,
   },
   footerItemDisabled: {
     opacity: 0.5,
   },
-  activeFooterItem: {
-    backgroundColor: '#EEF2FF',
-  },
+  activeFooterItem: {},
   footerText: {
     fontSize: 11,
-    color: '#64748B',
     fontWeight: '500',
+    textAlign: 'justify',
   },
   footerTextDisabled: {
-    color: '#CBD5E1',
+    color: '#94A3B8',
   },
   activeFooterText: {
-    color: '#4F46E5',
     fontWeight: '700',
   },
   modalCard: {

@@ -9,14 +9,14 @@ import {
   TouchableOpacity,
   TextInput,
   useWindowDimensions,
-  ActivityIndicator,
+  ActivityIndicator
 } from 'react-native';
 import { getObjectRecords } from './../apiService';
 import { callChat } from './ts/ChatPanel.ts';
 import { doUpload } from './ts/ObjectFile.ts';
 import { FilesExplorerPanel } from './FilesExplorerPanel';
 import NewPanel from './../panel/NewPanel';
-import io from 'socket.io-client';
+import MemberInfo from './MemberInfo';
 import { VoiceCallManager } from './VoiceCallManager';
 
 export interface ChatPanelProps {
@@ -27,7 +27,7 @@ export interface ChatPanelProps {
   setActiveToUID?: (uid: string) => void;
 }
 
-const CALL_EXPIRY_MINUTES = 4; // Configurable duration threshold
+const CALL_EXPIRY_MINUTES = 4;
 
 const MinimizeIcon = ({ color = '#FFFFFF', size = 16 }: { color?: string; size?: number }) =>
   createElement(
@@ -82,6 +82,24 @@ const CloseIcon = ({ color = '#FFFFFF', size = 16 }: { color?: string; size?: nu
     },
     createElement('line', { x1: 18, y1: 6, x2: 6, y2: 18 }),
     createElement('line', { x1: 6, y1: 6, x2: 18, y2: 18 })
+  );
+
+const HamburgerIcon = ({ color = '#FFFFFF', size = 16 }: { color?: string; size?: number }) =>
+  createElement(
+    'svg',
+    {
+      width: size,
+      height: size,
+      viewBox: '0 0 24 24',
+      fill: 'none',
+      stroke: color,
+      strokeWidth: 2.5,
+      strokeLinecap: 'round',
+      strokeLinejoin: 'round',
+    },
+    createElement('line', { x1: '3', y1: '12', x2: '21', y2: '12' }),
+    createElement('line', { x1: '3', y1: '6', x2: '21', y2: '6' }),
+    createElement('line', { x1: '3', y1: '18', x2: '21', y2: '18' })
   );
 
 const CallIcon = ({ color = '#4F46E5', size = 14 }: { color?: string; size?: number }) =>
@@ -215,7 +233,7 @@ const EMOTICONS = [
   '😋', '😎', '😍', '😘', '🥰', '😗', '😙', '😚', '🙂', '🤗',
   '🤔', '😐', '😑', '😶', '🙄', '😏', '😣', '😥', '😮', '🤐',
   '😪', '😫', '😴', '😌', '😛', '😜', '😝', '🤤', '😒', '😓',
-  '👍', '👎', '👏', '🙌', '🤝', '🙏', '🔥', '❤️', '💯', '✨'
+  '👍', '👎', '👏', '🙌', '🤝', '🙏', '🔥', '❤', '💯', '✨'
 ];
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPanelOpen }) => {
@@ -225,6 +243,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
   const [isClosed, setIsClosed] = useState<boolean>(false);
   const [isMemberBoxCollapsed, setIsMemberBoxCollapsed] = useState<boolean>(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false); // Hamburger menu toggle state for mobile view
   const [messageText, setMessageText] = useState<string>('');
   const [members, setMembers] = useState<any[]>([]);
   const [activeToUID, setActiveToUID] = useState<string>('');
@@ -233,7 +252,17 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
   const [nameUID, setNameUID] = useState<string>('');
   const [, setLastReadMsgSeqNo] = useState<number>(0);
 
-  // Voice Call States & Popup
+  const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number; member: any | null }>({
+    visible: false,
+    x: 0,
+    y: 0,
+    member: null,
+  });
+  const selectedMemberRef = useRef<any | null>(null);
+  const [showMemberInfoModal, setShowMemberInfoModal] = useState<boolean>(false);
+  const [selectedMemberInfo, setSelectedMemberInfo] = useState<any | null>(null);
+  const [isMemberInfoMaximized, setIsMemberInfoMaximized] = useState<boolean>(false);
+
   const [showVoiceCallPopup, setShowVoiceCallPopup] = useState<boolean>(false);
   const [isCallingWaiting, setIsCallingWaiting] = useState<boolean>(false);
   const [isIncomingCall, setIsIncomingCall] = useState<boolean>(false);
@@ -608,7 +637,45 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
     setMessages([]);
     messageSeqCounterRef.current = 0;
     setLastReadMsgSeqNo(0);
+    setIsMobileMenuOpen(false); // Close mobile drawer upon selecting a member
     focusInput();
+  };
+
+  const handleMemberContextMenu = (e: React.MouseEvent, member: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    selectedMemberRef.current = member;
+    setContextMenu({
+      visible: true,
+      x: e.clientX,
+      y: e.clientY,
+      member: member,
+    });
+  };
+
+  const handleMenuAction = (action: string) => {
+    const memberToProcess = contextMenu.member || selectedMemberRef.current;
+    
+    setContextMenu({ visible: false, x: 0, y: 0, member: null });
+
+    if (!memberToProcess) return;
+
+    if (action === 'Personal Info') {
+      setSelectedMemberInfo(memberToProcess);
+      setShowMemberInfoModal(true);
+    } else if (action === 'Delete member') {
+      const memberName = memberToProcess.uid || memberToProcess.name || memberToProcess.id;
+      if (confirm(`Are you sure you want to delete member ${memberName}?`)) {
+        setMembers((prev) => prev.filter((m) => (m.id || m.uid) !== (memberToProcess.id || memberToProcess.uid)));
+        if (activeToUID === (memberToProcess.id || memberToProcess.uid)) {
+          setActiveToUID('');
+          setActiveToUIDName('');
+        }
+      }
+    } else if (action === 'Block member') {
+      const memberName = memberToProcess.uid || memberToProcess.name || memberToProcess.id;
+      alert(`Member ${memberName} has been blocked.`);
+    }
   };
 
   const handleAddMemberPress = () => {
@@ -712,14 +779,24 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
 
       {/* Top Header Bar */}
       <View style={styles.topHeaderRow}>
-        <TouchableOpacity
-          style={styles.headerIconButton}
-          onPress={() => setIsMaximized(!isMaximized)}
-        >
-          {isMaximized ? <MinimizeIcon color="#FFFFFF" size={16} /> : <MaximizeIcon color="#FFFFFF" size={16} />}
-        </TouchableOpacity>
-        <Text style={styles.topHeaderTitle}>
-          Interactive Chat {activeToUIDName ? `(Chatting with: ${activeToUIDName})` : ''}
+        <View style={styles.headerLeftActions}>
+          {!isDesktop && (
+            <TouchableOpacity
+              style={styles.headerIconButton}
+              onPress={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              <HamburgerIcon color="#FFFFFF" size={16} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={styles.headerIconButton}
+            onPress={() => setIsMaximized(!isMaximized)}
+          >
+            {isMaximized ? <MinimizeIcon color="#FFFFFF" size={16} /> : <MaximizeIcon color="#FFFFFF" size={16} />}
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.topHeaderTitle} numberOfLines={1}>
+          Interactive Chat {activeToUIDName ? `(${activeToUIDName})` : ''}
         </Text>
         <TouchableOpacity style={styles.headerIconButton} onPress={handleClose}>
           <CloseIcon color="#FFFFFF" size={16} />
@@ -733,56 +810,155 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
 
       {/* Middle Body: Member Box + Chat Box */}
       <View style={[styles.middleBody, !isDesktop && styles.middleBodyMobile]}>
-        <View style={[styles.memberBox, isDesktop && isMemberBoxCollapsed && styles.memberBoxCollapsed]}>
-          <View style={styles.memberBoxHeaderRow}>
-            {!isMemberBoxCollapsed && (
-              <View style={styles.memberHeaderLeft}>
-                <Text style={styles.boxLabel}>Member Box</Text>
+        {/* Mobile Hamburger Drawer Overlay */}
+        {!isDesktop && isMobileMenuOpen && (
+          <View style={styles.mobileMenuBackdrop}>
+            <TouchableOpacity
+              style={styles.mobileMenuDismissArea}
+              activeOpacity={1}
+              onPress={() => setIsMobileMenuOpen(false)}
+            />
+            <View style={styles.mobileMenuDrawer}>
+              <View style={styles.memberBoxHeaderRow}>
+                <View style={styles.memberHeaderLeft}>
+                  <Text style={styles.boxLabel}>Member Box</Text>
+                </View>
+                <View style={styles.memberHeaderActions}>
+                  <TouchableOpacity
+                    style={styles.addMemberBtn}
+                    onPress={handleAddMemberPress}
+                  >
+                    <PlusIcon color="#4338CA" size={14} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.collapseBtn}
+                    onPress={() => setIsMobileMenuOpen(false)}
+                  >
+                    <CloseIcon color="#4338CA" size={14} />
+                  </TouchableOpacity>
+                </View>
               </View>
-            )}
-            <View style={styles.memberHeaderActions}>
-              {!isMemberBoxCollapsed && (
-                <TouchableOpacity
-                  style={styles.addMemberBtn}
-                  onPress={handleAddMemberPress}
-                >
-                  <PlusIcon color="#4338CA" size={14} />
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={styles.collapseBtn}
-                onPress={() => setIsMemberBoxCollapsed(!isMemberBoxCollapsed)}
-              >
-                <UsersIcon color="#4338CA" size={14} />
-                <Text style={styles.collapseBtnText}>{isMemberBoxCollapsed ? '›' : '‹'}</Text>
-              </TouchableOpacity>
+
+              <ScrollView style={{ flex: 1 }}>
+                {members.length > 0 ? (
+                  members.map((member, index) => {
+                    const memberUID = member.uid || member.name || member.id;
+                    const memberId = member.id || member.uid;
+                    const isSelected = activeToUID === memberId;
+                    const initialLetter = memberUID ? memberUID.charAt(0).toUpperCase() : 'U';
+
+                    return (
+                      <div
+                        key={memberId || index}
+                        onContextMenu={(e) => handleMemberContextMenu(e, member)}
+                        style={{ width: '100%' }}
+                      >
+                        <TouchableOpacity
+                          style={[styles.memberItemButton, isSelected && styles.memberItemActive]}
+                          onPress={() => handleMemberPress(member)}
+                        >
+                          <View style={styles.memberItemContent}>
+                            <View style={styles.memberAvatarCircle}>
+                              <Text style={styles.memberAvatarText}>{initialLetter}</Text>
+                            </View>
+                            <Text style={[styles.itemText, isSelected && styles.itemTextActive]} numberOfLines={1}>
+                              {memberUID}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div style={{ width: '100%' }}>
+                    <View style={styles.memberItemContent}>
+                      <View style={styles.memberAvatarCircle}>
+                        <Text style={styles.memberAvatarText}>U</Text>
+                      </View>
+                      <Text style={styles.itemText}>User: {uid}</Text>
+                    </View>
+                  </div>
+                )}
+              </ScrollView>
             </View>
           </View>
+        )}
 
-          {!isMemberBoxCollapsed && (
-            <ScrollView>
-              {members.length > 0 ? (
-                members.map((member, index) => {
-                  const memberUID = member.uid || member.name || member.id;
-                  const memberId = member.id || member.uid;
-                  const isSelected = activeToUID === memberId;
-                  return (
-                    <TouchableOpacity
-                      key={memberId || index}
-                      style={[styles.memberItemButton, isSelected && styles.memberItemActive]}
-                      onPress={() => handleMemberPress(member)}
-                    >
-                      <Text style={[styles.itemText, isSelected && styles.itemTextActive]}>- {memberUID}</Text>
-                    </TouchableOpacity>
-                  );
-                })
-              ) : (
-                <Text style={styles.itemText}>- User: {uid}</Text>
+        {/* Desktop Member Box (always visible on desktop) */}
+        {isDesktop && (
+          <View style={[styles.memberBox, isMemberBoxCollapsed && styles.memberBoxCollapsed]}>
+            <View style={styles.memberBoxHeaderRow}>
+              {!isMemberBoxCollapsed && (
+                <View style={styles.memberHeaderLeft}>
+                  <Text style={styles.boxLabel}>Member Box</Text>
+                </View>
               )}
-            </ScrollView>
-          )}
-        </View>
+              <View style={styles.memberHeaderActions}>
+                {!isMemberBoxCollapsed && (
+                  <TouchableOpacity
+                    style={styles.addMemberBtn}
+                    onPress={handleAddMemberPress}
+                  >
+                    <PlusIcon color="#4338CA" size={14} />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={styles.collapseBtn}
+                  onPress={() => setIsMemberBoxCollapsed(!isMemberBoxCollapsed)}
+                >
+                  <UsersIcon color="#4338CA" size={14} />
+                  <Text style={styles.collapseBtnText}>{isMemberBoxCollapsed ? '›' : '‹'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
 
+            {!isMemberBoxCollapsed && (
+              <ScrollView>
+                {members.length > 0 ? (
+                  members.map((member, index) => {
+                    const memberUID = member.uid || member.name || member.id;
+                    const memberId = member.id || member.uid;
+                    const isSelected = activeToUID === memberId;
+                    const initialLetter = memberUID ? memberUID.charAt(0).toUpperCase() : 'U';
+
+                    return (
+                      <div
+                        key={memberId || index}
+                        onContextMenu={(e) => handleMemberContextMenu(e, member)}
+                        style={{ width: '100%' }}
+                      >
+                        <TouchableOpacity
+                          style={[styles.memberItemButton, isSelected && styles.memberItemActive]}
+                          onPress={() => handleMemberPress(member)}
+                        >
+                          <View style={styles.memberItemContent}>
+                            <View style={styles.memberAvatarCircle}>
+                              <Text style={styles.memberAvatarText}>{initialLetter}</Text>
+                            </View>
+                            <Text style={[styles.itemText, isSelected && styles.itemTextActive]} numberOfLines={1}>
+                              {memberUID}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div style={{ width: '100%' }}>
+                    <View style={styles.memberItemContent}>
+                      <View style={styles.memberAvatarCircle}>
+                        <Text style={styles.memberAvatarText}>U</Text>
+                      </View>
+                      <Text style={styles.itemText}>User: {uid}</Text>
+                    </View>
+                  </div>
+                )}
+              </ScrollView>
+            )}
+          </View>
+        )}
+
+        {/* Chat Box */}
         <View style={styles.chatBox}>
           <Text style={styles.boxLabel}>Chat Box {activeToUIDName ? `- [From: ${activeToUIDName}]` : ''}</Text>
           <ScrollView
@@ -867,6 +1043,98 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
         </View>
       </View>
 
+      {/* Context Menu */}
+      {contextMenu.visible && (
+        <View style={styles.contextMenuOverlay}>
+          <TouchableOpacity
+            style={styles.contextMenuBackdrop}
+            activeOpacity={1}
+            onPress={() => setContextMenu({ visible: false, x: 0, y: 0, member: null })}
+          >
+            <View style={[styles.contextMenuBox, { top: Math.min(contextMenu.y, 400), left: Math.min(contextMenu.x, 250) }]}>
+              <View style={styles.contextMenuHeader}>
+                <Text style={styles.contextMenuHeaderTitle}>
+                  Options: {contextMenu.member?.uid || contextMenu.member?.name}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.contextMenuItem}
+                onPress={(e: any) => {
+                  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+                  handleMenuAction('Personal Info');
+                }}
+              >
+                <Text style={styles.contextMenuText}>Personal Info</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.contextMenuItem}
+                onPress={(e: any) => {
+                  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+                  handleMenuAction('Delete member');
+                }}
+              >
+                <Text style={styles.contextMenuText}>Delete member</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.contextMenuItem, styles.contextMenuDangerItem]}
+                onPress={(e: any) => {
+                  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+                  handleMenuAction('Block member');
+                }}
+              >
+                <Text style={styles.contextMenuDangerText}>Block member</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* MemberInfo Modal */}
+      {showMemberInfoModal && selectedMemberInfo && typeof window !== 'undefined' && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 999999999,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: isMemberInfoMaximized ? 0 : 16,
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowMemberInfoModal(false);
+            }
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: isMemberInfoMaximized ? '100%' : 600,
+              height: isMemberInfoMaximized ? '100%' : 'auto',
+              maxHeight: isMemberInfoMaximized ? '100%' : '90%',
+              backgroundColor: '#FFFFFF',
+              borderRadius: isMemberInfoMaximized ? 0 : 8,
+              overflow: 'hidden',
+              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <MemberInfo
+              recordid={selectedMemberInfo.id || selectedMemberInfo.uid}
+              objectid={selectedMemberInfo.objectid || 'PORTAL_USER_FORM_ID'}
+              onClose={() => setShowMemberInfoModal(false)}
+              onMaximize={() => setIsMemberInfoMaximized(!isMemberInfoMaximized)}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Toolbar Line */}
       <View style={styles.toolbarLine}>
         <TouchableOpacity
@@ -895,7 +1163,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
         </TouchableOpacity>
       </View>
 
-      {/* Voice Call Popup Box */}
+      {/* Voice Call Popup */}
       {showVoiceCallPopup && (
         <View style={styles.voiceCallPopupOverlay}>
           <View style={styles.voiceCallPopupBox}>
@@ -956,7 +1224,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
         </View>
       )}
 
-      {/* Emoticon Popup Box */}
+      {/* Emoticon Picker */}
       {showEmojiPicker && (
         <View style={styles.emojiPopupContainer}>
           <View style={styles.emojiPopupHeader}>
@@ -979,7 +1247,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
         </View>
       )}
 
-      {/* File Upload Popup Modal */}
+      {/* File Upload Modal */}
       {showFileUploadModal && (
         <View style={[styles.fileModalOverlay, isModalMaximized && styles.fileModalMaximizedOverlay]}>
           <View style={[styles.fileModalBox, isModalMaximized && styles.fileModalMaximizedBox]}>
@@ -1205,6 +1473,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#000000',
   },
+  headerLeftActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   headerIconButton: {
     width: 26,
     height: 26,
@@ -1230,9 +1503,33 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     gap: 8,
+    position: 'relative',
   },
   middleBodyMobile: {
     flexDirection: 'column',
+  },
+  mobileMenuBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 99,
+    flexDirection: 'row',
+  },
+  mobileMenuDismissArea: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  mobileMenuDrawer: {
+    width: 240,
+    backgroundColor: '#FFFFFF',
+    borderRightWidth: 1,
+    borderLeftWidth: 1,
+    borderColor: '#000000',
+    padding: 8,
+    height: '100%',
+    zIndex: 100,
   },
   memberBox: {
     width: 180,
@@ -1296,6 +1593,27 @@ const styles = StyleSheet.create({
   },
   memberItemActive: {
     backgroundColor: '#EEF2FF',
+  },
+  memberItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  memberAvatarCircle: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#4338CA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  memberAvatarText: {
+    fontSize: 8,
+    fontWeight: 'bold',
+    color: '#4338CA',
+    lineHeight: 10,
   },
   chatBox: {
     flex: 1,
@@ -1628,7 +1946,7 @@ const styles = StyleSheet.create({
   itemText: {
     fontSize: 11,
     color: '#333333',
-    marginVertical: 2,
+    flex: 1,
   },
   itemTextActive: {
     fontWeight: '700',
@@ -1706,6 +2024,63 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '600',
+  },
+  contextMenuOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999999999,
+  },
+  contextMenuBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  contextMenuBox: {
+    position: 'absolute',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    padding: 6,
+    minWidth: 180,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 10,
+  },
+  contextMenuHeader: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    marginBottom: 4,
+  },
+  contextMenuHeaderTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  contextMenuItem: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 4,
+    marginVertical: 1,
+  },
+  contextMenuText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  contextMenuDangerItem: {
+    backgroundColor: '#FEF2F2',
+  },
+  contextMenuDangerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#EF4444',
   },
 });
 

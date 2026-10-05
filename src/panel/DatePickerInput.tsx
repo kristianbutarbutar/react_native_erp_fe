@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 
 interface DatePickerInputProps {
-  value?: string; // Format: DD-MM-YYYY
+  value?: string; // Format: YYYY-MM-DD[cite: 10]
   onChange?: (val: string) => void;
   onDateSelected?: (val: string) => void;
   placeholder?: string;
@@ -29,9 +29,10 @@ const parseDateString = (dateStr?: string): Date => {
   if (!dateStr) return new Date();
   const parts = dateStr.split('-');
   if (parts.length === 3) {
-    const day = parseInt(parts[0], 10);
+    // Expected format: YYYY-MM-DD[cite: 10]
+    const year = parseInt(parts[0], 10);
     const month = parseInt(parts[1], 10) - 1;
-    const year = parseInt(parts[2], 10);
+    const day = parseInt(parts[2], 10);
     const date = new Date(year, month, day);
     if (!isNaN(date.getTime())) return date;
   }
@@ -39,17 +40,17 @@ const parseDateString = (dateStr?: string): Date => {
 };
 
 const formatDateString = (date: Date): string => {
-  const d = String(date.getDate()).padStart(2, '0');
-  const m = String(date.getMonth() + 1).padStart(2, '0');
   const y = date.getFullYear();
-  return `${d}-${m}-${y}`;
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 };
 
 export const DatePickerInput: React.FC<DatePickerInputProps> = ({
   value = '',
   onChange,
   onDateSelected,
-  placeholder = 'DD-MM-YYYY',
+  placeholder = 'YYYY-MM-DD',
   disabled = false,
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -94,7 +95,9 @@ export const DatePickerInput: React.FC<DatePickerInputProps> = ({
   };
 
   const handleSelectYear = (year: number) => {
-    setViewDate(new Date(year, viewMonth, 1));
+    const targetDate = new Date(year, viewMonth, 1);
+    const formattedDateString = formatDateString(targetDate);
+    setViewDate(new Date(formattedDateString));
     setShowYearPicker(false);
   };
 
@@ -112,7 +115,6 @@ export const DatePickerInput: React.FC<DatePickerInputProps> = ({
     daysGrid.push(d);
   }
 
-  // Generate a range of 24 years centered around the current view year for rapid selection
   const yearRange = Array.from({ length: 24 }, (_, i) => viewYear - 12 + i);
 
   const isSelected = (day: number) => {

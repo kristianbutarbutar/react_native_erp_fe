@@ -301,6 +301,7 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
     const [rowEnd, setRowEnd] = useState<number>(PAGE_SIZE);
     const [totalRecords, setTotalRecords] = useState<number>(0);
     const [htmlTable, setHtmlTable] = useState<string>('');
+    const [searchSelections, setSearchSelections] = useState<any | null>(null);
     const [tableInitiate, setTableInitiate] = useState(formid);
 
     // Action Box Tabs State
@@ -320,6 +321,7 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
         }>
     >([]);
 
+
     // Modal & Selection States
     const [isViewPanelOpen, setIsViewPanelOpen] = useState<boolean>(false);
     const [viewPanelFormId, setViewPanelFormId] = useState<string>('');
@@ -338,6 +340,10 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
     const [headerParentRecordId, setHeaderParentRecordId] = useState<string>('');
     const [headerParentObjectid, setHeaderParentObjectid] = useState<string>('');
     const [isHeaderCollapsed, setIsHeaderCollapsed] = useState<boolean>(false);
+
+    const searchSelectionsFunction = (search:any) => {
+        setSearchSelections(search);
+    };
 
     const extractTabArray = (response: any): any[] => {
         if (!response) return [];
@@ -1069,6 +1075,8 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
                             title={`Search ${formLabel}`}
                             onClose={() => setIsSearchPanelOpen(false)}
                             onSearch={handleSearchResult}
+                            searchSelectionsFunction = {searchSelectionsFunction}
+                            searchSelection = {searchSelections}
                         />
                     </View>,
                     99999999

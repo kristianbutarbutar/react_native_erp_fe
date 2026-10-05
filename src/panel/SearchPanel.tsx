@@ -31,6 +31,8 @@ export interface SearchPanelProps {
     sessionid?: string;
     title?: string;
     children?: React.ReactNode;
+    searchSelectionsFunction?: (search: any) => void;
+    searchSelection?: any; 
 }
 
 const CloseIcon = ({ color = '#475569', size = 20 }: { color?: string; size?: number }) =>
@@ -96,6 +98,8 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
     sessionid = '',
     title = 'Search Form Records',
     children,
+    searchSelectionsFunction,
+    searchSelection
 }) => {
     const { width } = useWindowDimensions();
     const isDesktop = width >= 768;
@@ -140,39 +144,64 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
         };
     }, [visible, activeDropdownCol, activeDateCol, onClose]);
 
-    // Load Schema via showForm
+    // Load Schema / Initialize from searchSelection if available
     const loadSchema = async () => {
         if (!visible) return;
-        const trimmedObjectId = objectid?.trim();
-
-        if (!trimmedObjectId) {
-            setErrorMessage('No valid Object ID provided.');
-            return;
-        }
-
         setLoading(true);
         setErrorMessage('');
 
         try {
-            const result = await showForm({
-                objectid: trimmedObjectId,
-                sessionId: sessionid || '',
-            });
-
-            if (result.success && result.columns) {
-                const fetchedCols = result.columns;
+            // Check if searchSelection is a valid JSON object containing columns & searchData attributes
+            if (
+                searchSelection &&
+                typeof searchSelection === 'object' &&
+                Array.isArray(searchSelection.columns) &&
+                searchSelection.searchData &&
+                typeof searchSelection.searchData === 'object'
+            ) {
+                const fetchedCols = searchSelection.columns;
                 setColumns(fetchedCols);
 
-                const initialValues: Record<string, any> = {};
-                const initialLabels: Record<string, string> = {};
+                const loadedValues: Record<string, any> = {};
+                const loadedLabels: Record<string, string> = {};
+
                 fetchedCols.forEach((col: ColumnSchema) => {
-                    initialValues[col.col_name.toLowerCase()] = '';
-                    initialLabels[col.col_name.toLowerCase()] = '';
+                    const key = col.col_name.toLowerCase();
+                    const val = searchSelection.searchData[key] !== undefined ? searchSelection.searchData[key] : '';
+                    loadedValues[key] = val;
+                    loadedLabels[key] = String(val);
                 });
-                setSearchData(initialValues);
-                setDisplayLabels(initialLabels);
+
+                setSearchData(loadedValues);
+                setDisplayLabels(loadedLabels);
             } else {
-                setErrorMessage(result.error || 'Failed to load search schema.');
+                const trimmedObjectId = objectid?.trim();
+                if (!trimmedObjectId) {
+                    setErrorMessage('No valid Object ID provided.');
+                    setLoading(false);
+                    return;
+                }
+
+                const result = await showForm({
+                    objectid: trimmedObjectId,
+                    sessionId: sessionid || '',
+                });
+
+                if (result.success && result.columns) {
+                    const fetchedCols = result.columns;
+                    setColumns(fetchedCols);
+
+                    const initialValues: Record<string, any> = {};
+                    const initialLabels: Record<string, string> = {};
+                    fetchedCols.forEach((col: ColumnSchema) => {
+                        initialValues[col.col_name.toLowerCase()] = '';
+                        initialLabels[col.col_name.toLowerCase()] = '';
+                    });
+                    setSearchData(initialValues);
+                    setDisplayLabels(initialLabels);
+                } else {
+                    setErrorMessage(result.error || 'Failed to load search schema.');
+                }
             }
         } catch (err: any) {
             setErrorMessage(err?.message || 'Error loading schema.');
@@ -183,7 +212,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
 
     useEffect(() => {
         loadSchema();
-    }, [visible, objectid, sessionid]);
+    }, [visible, objectid, sessionid, searchSelection]);
 
     const handleInputChange = (colName: string, value: any) => {
         setSearchData((prev) => ({
@@ -246,7 +275,6 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
         setErrorMessage('');
 
         try {
-            // Build search array payload [{col_name, value}]
             const searchArray = columns.map((col) => {
                 const key = col.col_name.toLowerCase();
                 return {
@@ -255,6 +283,13 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
                     operator: ' like ',
                 };
             });
+
+            if (searchSelectionsFunction && typeof searchSelectionsFunction === 'function') {
+                searchSelectionsFunction({
+                    columns: columns,
+                    searchData: searchData,
+                });
+            }
 
             const searchResponse = await doSearch({
                 objectid: trimmedObjectId,
