@@ -1,6 +1,7 @@
 import io from 'socket.io-client';
+import {DOMAIN_CALL_WEB} from '../global';
 
-const SOCKET_VOICE_SERVER_URL = 'http://127.0.0.1:3006';
+const SOCKET_VOICE_SERVER_URL = DOMAIN_CALL_WEB();
 
 export class VoiceCallManager {
     private socket: any = null;

@@ -1,8 +1,9 @@
 // panel/ts/NewPanel.ts
+import {DOMAIN_WEB, DOMAIN_QONLY_WEB} from '../../global';
 
-export const GET_OBJECT_SCHEMA_ENDPOINT = 'http://localhost:3001/api/get-object-schema';
-export const CREATE_OBJECT_ENDPOINT = 'http://localhost:3000/api/save-object';
-export const COL_LIST_ENDPOINT = 'http://localhost:3001/api/colList';
+export const GET_OBJECT_SCHEMA_ENDPOINT = `${DOMAIN_QONLY_WEB()}/api/get-object-schema`;//'http://localhost:3001/api/get-object-schema';
+export const CREATE_OBJECT_ENDPOINT = `${DOMAIN_WEB()}/api/save-object`; //'http://localhost:3000/api/save-object';
+export const COL_LIST_ENDPOINT = `${DOMAIN_QONLY_WEB()}/api/colList`; //'http://localhost:3001/api/colList';
 
 export interface ShowFormPayload {
   tableName: string;

@@ -1,3 +1,5 @@
+import {DOMAIN_WEB} from '../../global';
+
 export interface DropMenuPayload {
   objectid: string;
   selectedmenuid: string;
@@ -11,7 +13,7 @@ export interface DropMenuResponse {
   [key: string]: any;
 }
 
-const API_BASE_URL = 'http://localhost:3000'; //process.env.NEXT_PUBLIC_API_URL || 
+const API_BASE_URL = DOMAIN_WEB(); //'http://localhost:3000'; //process.env.NEXT_PUBLIC_API_URL || 
 
 export async function dropMenu(input: DropMenuPayload): Promise<DropMenuResponse> {
   try {

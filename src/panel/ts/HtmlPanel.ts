@@ -1,6 +1,7 @@
 // panel/ts/HtmlPanel.ts
 
 import { doUpload, type DoUploadResult } from './../../customer/ts/ObjectFile';
+import {DOMAIN_UPLOAD_WEB} from '../../global';
 
 export interface TableFormatStyles {
   scope: 'cell' | 'row' | 'column' | 'selected-columns' | 'table';
@@ -77,7 +78,7 @@ export async function readFile(params: ReadFileParams): Promise<string | null> {
     const fileName = encodeURIComponent(String(record.savedname).trim());
     const sessionid = encodeURIComponent(String(sessionId || 'sess_12345').trim());
 
-    const url = `http://localhost:3002/api/read?fileName=${fileName}&sessionid=${sessionid}`;
+    const url = `${DOMAIN_UPLOAD_WEB()}/api/read?fileName=${fileName}&sessionid=${sessionid}`; //`http://localhost:3002/api/read?fileName=${fileName}&sessionid=${sessionid}`;
 
     const response = await fetch(url, {
       method: 'GET',

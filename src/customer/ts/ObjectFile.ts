@@ -1,6 +1,10 @@
 // customer/ObjectFile.ts
 
-export const QUERY_UPLOAD_ENDPOINT = 'http://localhost:3002/api/upload';
+import {DOMAIN_UPLOAD_WEB} from '../../global';
+
+const API_DOMAIN_UPLOAD = DOMAIN_UPLOAD_WEB(); 
+
+export const QUERY_UPLOAD_ENDPOINT = `${API_DOMAIN_UPLOAD}/api/upload`;
 
 export interface FileItem {
     name: string;

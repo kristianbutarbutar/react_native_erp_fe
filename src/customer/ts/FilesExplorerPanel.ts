@@ -1,6 +1,9 @@
 // src/customer/FileExplorerPanel.ts
+import {DOMAIN_WEB} from '../../global';
 
-export const QUERY_OBJECT_IN_TABLE_ENDPOINT = 'http://localhost:3000/api/query-object-in-table';
+const API_DOMAIN_WEB = DOMAIN_WEB(); 
+
+export const QUERY_OBJECT_IN_TABLE_ENDPOINT = `${API_DOMAIN_WEB}/api/query-object-in-table`;
 
 export interface LoadFilesPayload {
     sessionid?: string;

@@ -1,9 +1,10 @@
 // panel/ts/FormsChilds.ts
 
 import { drop } from './Derado';
+import {DOMAIN_WEB} from '../../global';
 
-export const QUERY_OBJECT_ENDPOINT = 'http://localhost:3000/api/query-object';
-export const CREATE_OBJECT_ENDPOINT = 'http://localhost:3000/api/save-object';
+export const QUERY_OBJECT_ENDPOINT = `${DOMAIN_WEB()}/api/query-object`; //'http://localhost:3000/api/query-object';
+export const CREATE_OBJECT_ENDPOINT = `${DOMAIN_WEB()}/api/save-object`; //'http://localhost:3000/api/save-object';
 
 export interface CreateColumnItem {
     col_name: string;

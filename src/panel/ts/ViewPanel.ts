@@ -1,7 +1,8 @@
 // panel/ts/ViewPanel.ts
+import {DOMAIN_WEB, DOMAIN_QONLY_WEB} from '../../global';
 
-export const GET_OBJECT_SCHEMA_ENDPOINT = 'http://localhost:3001/api/get-object-schema';
-export const VIEW_OBJECT_ITEM_ENDPOINT = 'http://localhost:3000/api/query-object';
+export const GET_OBJECT_SCHEMA_ENDPOINT = `${DOMAIN_QONLY_WEB()}/api/get-object-schema`; //'http://localhost:3001/api/get-object-schema';
+export const VIEW_OBJECT_ITEM_ENDPOINT = `${DOMAIN_WEB()}/api/query-object`;//'http://localhost:3000/api/query-object';
 
 export interface ViewPanelPayload {
   tableName: string;

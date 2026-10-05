@@ -1,3 +1,7 @@
+import {DOMAIN_CHAT_WEB} from '../../global';
+
+const API_BASE_CHAT_URL = DOMAIN_CHAT_WEB(); 
+
 export interface ChatCallParams {
   action: string;
   uid: string;
@@ -21,7 +25,7 @@ export interface ChatResponse {
  */
 export async function callChat(
   params: ChatCallParams,
-  endpoint: string = 'http://localhost:3003/api/chat'
+  endpoint: string = `${API_BASE_CHAT_URL}/api/chat`
 ): Promise<ChatResponse> {
   try {
     const response = await fetch(endpoint, {

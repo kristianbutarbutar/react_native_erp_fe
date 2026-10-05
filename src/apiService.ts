@@ -1,13 +1,14 @@
 // apiService.ts
 import type { MenuItem } from './types';
+import {DOMAIN_WEB} from './global';
 
 // API Endpoints & Base Configuration
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = DOMAIN_WEB(); //'http://localhost:3000';
 const QUERY_OBJECT_ENDPOINT = `${API_BASE_URL}/api/query-object`;
 const QUERY_OBJECT_IN_TABLE_ENDPOINT = `${API_BASE_URL}/api/query-object-in-table`;
 const SAVE_OBJECT_ENDPOINT = `${API_BASE_URL}/api/save-object`;
-const GET_OBJECT_SCHEMA_ENDPOINT = 'http://localhost:3001/api/get-object-schema';
-const COL_LIST_ENDPOINT = 'http://localhost:3001/api/colList';
+const GET_OBJECT_SCHEMA_ENDPOINT = `${API_BASE_URL}/api/get-object-schema`; //'http://localhost:3001/api/get-object-schema';
+const COL_LIST_ENDPOINT = DOMAIN_WEB() + `${API_BASE_URL}/api/colList`; //'http://localhost:3001/api/colList';
 
 export interface APIPayload {
   id: string;

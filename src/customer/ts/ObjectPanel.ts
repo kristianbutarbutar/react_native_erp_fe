@@ -1,7 +1,9 @@
 // customer/ObjectPanel.ts
 
-export const QUERY_OBJECT_ENDPOINT = 'http://localhost:3000/api/query-object';
-export const QUERY_TABS_ENDPOINT = 'http://localhost:3001/api/query';
+import {DOMAIN_WEB, DOMAIN_QONLY_WEB} from '../../global';
+
+export const QUERY_OBJECT_ENDPOINT = `${DOMAIN_WEB()}/api/query-object`;
+export const QUERY_TABS_ENDPOINT = `${DOMAIN_QONLY_WEB()}/api/query`;
 
 export interface WhereClauseItem {
     col_name: string;

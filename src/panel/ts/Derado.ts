@@ -1,7 +1,8 @@
 // panel/ts/Derado.ts
+import {DOMAIN_WEB} from '../../global';
 
-export const DROP_OBJECT_ENDPOINT = 'http://localhost:3000/api/drop-object';
-export const DROP_ENDPOINT = 'http://localhost:3000/api/drop';
+export const DROP_OBJECT_ENDPOINT = `${DOMAIN_WEB()}/api/drop-object`;//'http://localhost:3000/api/drop-object';
+export const DROP_ENDPOINT = `${DOMAIN_WEB()}/api/drop`;//'http://localhost:3000/api/drop';
 
 export interface DropItemPayload {
     tableName: string;
