@@ -13,8 +13,10 @@ export class VoiceCallManager {
 
     public connect(uid: string, touid: string, onStatusChange: (status: string) => void) {
         onStatusChange('Connecting to Voice Bridge...');
+        
+        console.log("VoiceCallManager > Connect > ", SOCKET_VOICE_SERVER_URL);
 
-        this.socket = io(SOCKET_VOICE_SERVER_URL);
+        this.socket = io(`${SOCKET_VOICE_SERVER_URL}/callio`);
 
         this.socket.on('connect', () => {
             onStatusChange('Waiting for room assignment...');

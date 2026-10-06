@@ -92,7 +92,7 @@ export async function getTabs(
             recordid: input.recordid,
             ...(input.sessionId ? { sessionId: input.sessionId } : {}),
         };
-        console.log("getTabs > endpoint > ", endpoint);
+
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: {

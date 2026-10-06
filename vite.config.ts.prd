@@ -154,7 +154,7 @@ export default defineConfig({
         },
       },
       '/api/chat': {
-        target: `${NODE_SERVICE}:3003`,
+        target: `${CHAT_NODE_SERVICE}:3003`,
         changeOrigin: true,
         secure: false,
         configure: (proxy, options) => {
@@ -164,7 +164,7 @@ export default defineConfig({
         },
       },
       '/api/chat/register': {
-        target: `${NODE_SERVICE}:3003`,
+        target: `${CHAT_NODE_SERVICE}:3003`,
         changeOrigin: true,
         secure: false,
         configure: (proxy, options) => {
@@ -174,7 +174,7 @@ export default defineConfig({
         },
       },
       '/api/loadChatUser': {
-        target: `${NODE_SERVICE}:3003`,
+        target: `${CHAT_NODE_SERVICE}:3003`,
         changeOrigin: true,
         secure: false,
         configure: (proxy, options) => {
@@ -189,13 +189,6 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/ws/, ''),
-      },
-      '/callio': {
-        target: `${CHAT_NODE_SERVICE}:3006`,
-        ws: true,
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/callio/, ''),
       }
     },
   },

@@ -13,6 +13,7 @@ import {
 import { loadFiles } from './ts/FilesExplorerPanel';
 import { showForm } from './../panel/ts/NewPanel';
 import { updateObject } from './../panel/ts/EditPanel';
+import { DOMAIN_FILES } from '../global';
 
 const PAGE_SIZE = 10;
 
@@ -20,6 +21,8 @@ const PAGE_SIZE = 10;
 const COMPACT_FONT_SIZE = '11px';
 const COMPACT_PADDING = '2px';
 const COMPACT_MARGIN = '2px';
+
+export const FILES_URI = DOMAIN_FILES();
 
 export interface FilesExplorerPanelProps {
   visible?: boolean;
@@ -130,7 +133,7 @@ const getFileBadgeHtml = (ext: string, fileName: string) => {
   else if (lowerExt === 'sql') bg = '#16A34A';
   else if (lowerExt === 'txt') bg = '#4B5563';
 
-  const readUrl = `http://localhost:3002/api/read?fileName=${encodeURIComponent(fileName)}`;
+  const readUrl = `${FILES_URI}/api/read?fileName=${encodeURIComponent(fileName)}`; //`http://localhost:3002/api/read?fileName=${encodeURIComponent(fileName)}`;
 
   return `<a href="${readUrl}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:4px; max-width:100%; word-break:break-word;"><span style="display:inline-block; font-size:9px; font-weight:bold; padding:1px 4px; border-radius:2px; background:${bg}; color:#fff; text-transform:uppercase; flex-shrink:0;">${ext}</span><span style="overflow-wrap:break-word; word-break:break-word; color:#4F46E5; text-decoration:underline;">${fileName}</span></a>`;
 };
@@ -248,7 +251,7 @@ export const FilesExplorerPanel: React.FC<FilesExplorerPanelProps> = ({
   const [formColumns, setFormColumns] = useState<any[]>([]);
   const [isColumnModalOpen, setIsColumnModalOpen] = useState<boolean>(false);
   const [selectedColumnField, setSelectedColumnField] = useState<{ label: string; html_type: string; col_name?: string } | null>(null);
-  
+
   // Save result popup states
   const [isSaveResultOpen, setIsSaveResultOpen] = useState<boolean>(false);
   const [saveResultMessage, setSaveResultMessage] = useState<string>('');
@@ -295,7 +298,7 @@ export const FilesExplorerPanel: React.FC<FilesExplorerPanelProps> = ({
           const inputEl = inputs[i] as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
           const value = inputEl.value;
           const rowTr = inputEl.closest('tr');
-          
+
           if (rowTr) {
             let recordId = '';
             const radioEl = rowTr.querySelector('input[type="radio"]') as HTMLInputElement;

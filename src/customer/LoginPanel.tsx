@@ -143,7 +143,6 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({
 
         setIsLoading(true);
         try {
-            console.log('Logging in with session:', sessionid, 'User/ID:', trimmedUsername);
 
             // Load the entered username/id through the callback if provided
             if (loadUid) {
