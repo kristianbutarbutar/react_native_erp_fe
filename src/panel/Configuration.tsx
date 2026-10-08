@@ -287,7 +287,7 @@ export const Configuration: React.FC<ConfigurationProps> = ({ children }) => {
 
     // Trigger getTabs on tab click, populate custom tabs box, and handle active selection/highlighting
     const handleTabClickFetchSubTabs = async (tabItem: TabItem, currentBoxName?: string) => {
-        const tabId = tabItem.id || getFormId(tabItem);
+        const tabId = tabItem.id;// || getFormId(tabItem);
         if (!tabId) return;
 
         setIsTransitioning(true);
@@ -578,8 +578,8 @@ export const Configuration: React.FC<ConfigurationProps> = ({ children }) => {
                 const parentId = type === 'parent'
                     ? selectedParent?.id
                     : type === 'child'
-                    ? selectedChild?.id
-                    : selectedCustomTabItem?.tabid || activeTab?.id || selectedChild?.id || selectedParent?.id;
+                        ? selectedChild?.id
+                        : selectedCustomTabItem?.tabid || activeTab?.id || selectedChild?.id || selectedParent?.id;
 
                 addTabsBoxUnderChildTabs({
                     tabBoxName: boxName,
@@ -601,10 +601,10 @@ export const Configuration: React.FC<ConfigurationProps> = ({ children }) => {
             const targetTab = type === 'parent'
                 ? selectedParent
                 : type === 'child'
-                ? selectedChild
-                : selectedCustomTabItem
-                ? { id: selectedCustomTabItem.tabid, label: selectedCustomTabItem.tablabel }
-                : activeTab;
+                    ? selectedChild
+                    : selectedCustomTabItem
+                        ? { id: selectedCustomTabItem.tabid, label: selectedCustomTabItem.tablabel }
+                        : activeTab;
 
             if (!targetTab) {
                 alert(`No item selected to drop.`);
@@ -615,10 +615,10 @@ export const Configuration: React.FC<ConfigurationProps> = ({ children }) => {
             const targetTab = type === 'parent'
                 ? selectedParent
                 : type === 'child'
-                ? selectedChild
-                : selectedCustomTabItem
-                ? { id: selectedCustomTabItem.tabid, label: selectedCustomTabItem.tablabel }
-                : activeTab;
+                    ? selectedChild
+                    : selectedCustomTabItem
+                        ? { id: selectedCustomTabItem.tabid, label: selectedCustomTabItem.tablabel }
+                        : activeTab;
 
             if (targetTab) {
                 handleTabClickFetchSubTabs(targetTab, boxItem?.tabBoxName);
@@ -695,14 +695,14 @@ export const Configuration: React.FC<ConfigurationProps> = ({ children }) => {
     const assignerParentId = isChildTrigger && selectedChild
         ? (selectedChild.id || getFormId(selectedChild))
         : isCustomBoxTrigger && selectedCustomTabItem
-        ? (selectedCustomTabItem.tabid || selectedCustomTabItem.id)
-        : (selectedParent?.id || getFormId(selectedParent) || 'ROOT');
+            ? (selectedCustomTabItem.tabid || selectedCustomTabItem.id)
+            : (selectedParent?.id || getFormId(selectedParent) || 'ROOT');
 
     const assignerParentLabel = isChildTrigger && selectedChild
         ? selectedChild.label
         : isCustomBoxTrigger && selectedCustomTabItem
-        ? (selectedCustomTabItem.tablabel || selectedCustomTabItem.label)
-        : (selectedParent?.label || 'Root Parent');
+            ? (selectedCustomTabItem.tablabel || selectedCustomTabItem.label)
+            : (selectedParent?.label || 'Root Parent');
 
     const assignerFormLevel = isChildTrigger ? 3 : isCustomBoxTrigger ? 4 : 2;
 

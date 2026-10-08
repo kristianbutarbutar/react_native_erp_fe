@@ -18,7 +18,7 @@ import { FilesExplorerPanel } from './FilesExplorerPanel';
 import NewPanel from './../panel/NewPanel';
 import MemberInfo from './MemberInfo';
 import { VoiceCallManager } from './VoiceCallManager';
-import {DOMAIN_WS_CHAT} from '../global';
+import { DOMAIN_WS_CHAT } from '../global';
 
 
 export interface ChatPanelProps {
@@ -26,7 +26,7 @@ export interface ChatPanelProps {
   uid: string;
   showChatPanelOpen?: (isOpen: boolean) => void;
   activeToUID?: string;
-  setActiveToUID?: (uid: string) => void;
+  toSetActiveToUID?: (uid: string) => void;
 }
 export const WS_URI = DOMAIN_WS_CHAT();
 
@@ -250,10 +250,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
   const [messageText, setMessageText] = useState<string>('');
   const [members, setMembers] = useState<any[]>([]);
   const [activeToUID, setActiveToUID] = useState<string>('');
+  const [toUID, setToUID] = useState<string>('');
   const [activeToUIDName, setActiveToUIDName] = useState<string>('');
   const [activeUID, setActiveUID] = useState<string>('');
   const [nameUID, setNameUID] = useState<string>('');
   const [, setLastReadMsgSeqNo] = useState<number>(0);
+
+  const toUIDRef = useRef(toUID);
 
   const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number; member: any | null }>({
     visible: false,
@@ -398,7 +401,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
           const messagePayload = {
             action: 'read_message',
             uid: uid,
-            touid: [activeToUID],
+            touid: [toUIDRef.current],
             fromseqno: String(messageSeqCounterRef.current),
           };
 
@@ -414,7 +417,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
           let _lastMessage: any = {};
 
           parsedData.node.forEach((__msg: any) => {
-            const isFromCurrentUser = __msg.uid === uid || __msg.uid === nameUID || __msg.sender === 'You';
+            const isFromCurrentUser = __msg.uid.toLowerCase() === nameUID.toLowerCase();
 
             setMessages((prev) => [
               ...prev,
@@ -504,7 +507,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
       const __payload = {
         action: 'write_message',
         uid: activeUID || uid,
-        touid: [activeToUID],
+        touid: [toUID],
         message: __msg,
         timestamp: timestamp,
       };
@@ -633,14 +636,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
   };
 
   const handleMemberPress = (member: any) => {
-    const selectedUID = member.id || member.uid;
-    const selectedUIDName = member.uid || member.name || member.id;
-    setActiveToUID(selectedUID);
-    setActiveToUIDName(selectedUIDName);
+    const __activeToUID = member.id; setToUID(member.id); toUIDRef.current = __activeToUID;
+    const __selectedUIDName = member.uid;
+    setActiveToUID(__activeToUID);
+    setActiveToUIDName(__selectedUIDName);
     setMessages([]);
     messageSeqCounterRef.current = 0;
     setLastReadMsgSeqNo(0);
-    setIsMobileMenuOpen(false); // Close mobile drawer upon selecting a member
+    setIsMobileMenuOpen(false);
     focusInput();
   };
 
@@ -658,7 +661,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
 
   const handleMenuAction = (action: string) => {
     const memberToProcess = contextMenu.member || selectedMemberRef.current;
-    
+
     setContextMenu({ visible: false, x: 0, y: 0, member: null });
 
     if (!memberToProcess) return;

@@ -1,8 +1,6 @@
 // panel/ts/Configuration.ts
-import {DOMAIN_WEB,DOMAIN_QONLY_WEB} from '../../global';
-
-export const QUERY_OBJECT_ENDPOINT = `${DOMAIN_WEB()}/api/query-object`; //http://localhost:3000/api/query-object';
-export const QUERY_TABS_ENDPOINT = `${DOMAIN_QONLY_WEB}/api/query`;//'http://localhost:3001/api/query';
+export const QUERY_OBJECT_ENDPOINT = `/api/query-object`; //http://localhost:3000/api/query-object';
+export const QUERY_TABS_ENDPOINT = `/api/inquery`;//'http://localhost:3001/api/query';
 
 export interface WhereClauseItem {
     col_name: string;
@@ -112,8 +110,8 @@ export async function getTabs(
             filterColumns: ['id', 'pid', 'label', 'level', 'target_tsx', 'formid', 'icon'],
             recordid: input.recordid,
         };
-
-        const response = await fetch(endpoint, {
+        console.log("getTabs > endpoint = ", QUERY_TABS_ENDPOINT, " Payload = ", JSON.stringify(requestPayload));
+        const response = await fetch(QUERY_TABS_ENDPOINT, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

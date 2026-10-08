@@ -1,5 +1,5 @@
 import io from 'socket.io-client';
-import {DOMAIN_CALL_WEB} from '../global';
+import { DOMAIN_CALL_WEB } from '../global';
 
 const SOCKET_VOICE_SERVER_URL = DOMAIN_CALL_WEB();
 
@@ -13,10 +13,14 @@ export class VoiceCallManager {
 
     public connect(uid: string, touid: string, onStatusChange: (status: string) => void) {
         onStatusChange('Connecting to Voice Bridge...');
-        
+
         console.log("VoiceCallManager > Connect > ", SOCKET_VOICE_SERVER_URL);
 
-        this.socket = io(`${SOCKET_VOICE_SERVER_URL}/callio`);
+        this.socket = io(`${SOCKET_VOICE_SERVER_URL}`, {
+            path: "/callio/socket.io", // Must match your Nginx location rule + /socket.io/
+            transports: ['websocket', 'polling'], // Allow fallback to polling if needed
+            secure: true
+        });
 
         this.socket.on('connect', () => {
             onStatusChange('Waiting for room assignment...');

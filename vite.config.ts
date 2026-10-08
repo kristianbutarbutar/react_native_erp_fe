@@ -83,7 +83,7 @@ export default defineConfig({
           });
         },
       },
-      '/api/query': {
+      '/api/inquery': {
         target: `${NODE_SERVICE}:3001`,
         changeOrigin: true,
         secure: false,

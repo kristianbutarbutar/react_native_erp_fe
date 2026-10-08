@@ -343,7 +343,7 @@ export const ObjectRecords: React.FC<ObjectRecordsProps> = ({
         return doc.body.innerHTML;
     };
 
-    const searchSelectionsFunction = (search:any) => {
+    const searchSelectionsFunction = (search: any) => {
         setSearchSelections(search);
     };
 
@@ -450,7 +450,7 @@ export const ObjectRecords: React.FC<ObjectRecordsProps> = ({
                     const inputEl = inputs[i] as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
                     const value = inputEl.value;
                     const rowTr = inputEl.closest('tr');
-                    
+
                     if (rowTr) {
                         let recordId = '';
                         const radioEl = rowTr.querySelector('input[type="radio"]') as HTMLInputElement;
@@ -633,7 +633,7 @@ export const ObjectRecords: React.FC<ObjectRecordsProps> = ({
                         {actionContent ? (
                             actionContent
                         ) : (
-                            <View style={styles.customActionContainer}>
+                            < View style={styles.customActionContainer}>
                                 <View />
                                 <View style={styles.actionRightGroup}>
                                     <TouchableOpacity
@@ -782,7 +782,8 @@ export const ObjectRecords: React.FC<ObjectRecordsProps> = ({
             </ScrollView>
 
             {/* VIEW PANEL PORTAL TO DOCUMENT BODY */}
-            {isViewPanelOpen &&
+            {
+                isViewPanelOpen &&
                 renderPortal(
                     <View style={styles.topStackOverlay}>
                         <ViewPanel
@@ -802,10 +803,12 @@ export const ObjectRecords: React.FC<ObjectRecordsProps> = ({
                             sessionId={sessionId}
                         />
                     </View>
-                )}
+                )
+            }
 
             {/* NEW PANEL PORTAL TO DOCUMENT BODY */}
-            {isNewPanelOpen &&
+            {
+                isNewPanelOpen &&
                 renderPortal(
                     <View style={styles.topStackOverlay}>
                         <NewPanel
@@ -820,10 +823,12 @@ export const ObjectRecords: React.FC<ObjectRecordsProps> = ({
                             sessionId={sessionId}
                         />
                     </View>
-                )}
+                )
+            }
 
             {/* SEARCH PANEL PORTAL TO DOCUMENT BODY */}
-            {isSearchPanelOpen &&
+            {
+                isSearchPanelOpen &&
                 renderPortal(
                     <SearchPanel
                         visible={isSearchPanelOpen}
@@ -832,13 +837,15 @@ export const ObjectRecords: React.FC<ObjectRecordsProps> = ({
                         title={`Search ${formLabel}`}
                         onClose={() => setIsSearchPanelOpen(false)}
                         onSearch={handleSearchResult}
-                        searchSelectionsFunction = {searchSelectionsFunction}
-                        searchSelection = {searchSelections}
+                        searchSelectionsFunction={searchSelectionsFunction}
+                        searchSelection={searchSelections}
                     />
-                )}
+                )
+            }
 
             {/* POP UP BOX IN MIDDLE OF BROWSER FOR SELECTING COLUMN */}
-            {isColumnModalOpen &&
+            {
+                isColumnModalOpen &&
                 renderPortal(
                     <div style={{
                         position: 'fixed',
@@ -903,10 +910,12 @@ export const ObjectRecords: React.FC<ObjectRecordsProps> = ({
                             )}
                         </div>
                     </div>
-                )}
+                )
+            }
 
             {/* POP UP BOX IN MIDDLE OF BROWSER FOR SAVE RESULT */}
-            {isSaveResultOpen &&
+            {
+                isSaveResultOpen &&
                 renderPortal(
                     <div style={{
                         position: 'fixed',
@@ -948,8 +957,9 @@ export const ObjectRecords: React.FC<ObjectRecordsProps> = ({
                             </button>
                         </div>
                     </div>
-                )}
-        </SafeAreaView>
+                )
+            }
+        </SafeAreaView >
     );
 };
 
