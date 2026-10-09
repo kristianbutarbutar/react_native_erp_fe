@@ -927,9 +927,11 @@ export const HtmlPanel: React.FC<HtmlPanelProps> = ({
 
     const handleSaveToCloud = async () => {
         setActiveMenu(null);
+
         const result = await saveToCloud({
             session: activeSessionId,
             file: htmlContent,
+            recordid: record?.pid || "",
             fileName: (record?.file as string) || (record?.savedName as string) || 'document.html',
             mimeType: 'text/html',
         });

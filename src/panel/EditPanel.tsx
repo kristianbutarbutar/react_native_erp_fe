@@ -383,11 +383,14 @@ export const EditPanel: React.FC<EditPanelProps> = ({
 
   const handleOpenHtmlEditor = async (colName: string) => {
     setActiveHtmlColName(colName);
+    
+    console.log("handleOpenHtmlEditor > colName = ", colName);
+    
     const rawValue = formData[colName.toLowerCase()];
 
     if (rawValue !== undefined && rawValue !== null && String(rawValue).trim() !== '') {
       try {
-        const recordResult = await viewObjectItem({
+        const __payload = {
           objectid: 'UPLOADED_FILES_FORM_ID',
           sessionId: sessionId || '',
           whereClause: [
@@ -397,10 +400,17 @@ export const EditPanel: React.FC<EditPanelProps> = ({
               operator: '=',
             },
           ],
-        });
+        };
+        console.log("handleOpenHtmlEditor payload > ", JSON.stringify(__payload));
+
+        const recordResult = await viewObjectItem(__payload);
+        
+        console.log("handleOpenHtmlEditor result > ", JSON.stringify(recordResult))
 
         const __record = recordResult?.data?.data?.[0] || null;
+
         setHtmlRecordData(__record);
+
       } catch (err) {
         console.error('Error fetching uploaded files record for html editor:', err);
         setHtmlRecordData(null);

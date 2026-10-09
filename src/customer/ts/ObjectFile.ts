@@ -19,6 +19,7 @@ export interface DoUploadPayload {
     sessionId?: string;
     [key: string]: any;
     htmleditor?: string;
+    recordid?: string;
 }
 
 export interface DoUploadResult {
@@ -88,6 +89,7 @@ export async function doUpload(
         const sessionId = input.sessionId || input.sessionid || '';
         const rawFiles = input.files || [];
         const inputHtmlEditor = input.htmleditor || '';
+        const recordid = input.recordid || '';
 
         const formattedFiles = [];
         for (const file of rawFiles) {
@@ -103,7 +105,7 @@ export async function doUpload(
         const requestPayload = {
             sessionid: sessionId,
             message: '',
-            files: formattedFiles, htmleditor: inputHtmlEditor
+            files: formattedFiles, htmleditor: inputHtmlEditor, recordid: recordid,
         };
 
         const response = await fetch(endpoint, {
@@ -125,7 +127,6 @@ export async function doUpload(
             data,
         };
     } catch (err: any) {
-        console.error('Error in doUpload (ObjectFile):', err);
         return {
             success: false,
             error: err?.message || 'Failed to upload files',

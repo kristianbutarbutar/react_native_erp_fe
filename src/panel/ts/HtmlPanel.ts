@@ -101,7 +101,7 @@ export async function readFile(params: ReadFileParams): Promise<string | null> {
  */
 export async function saveToCloud(params: SaveToCloudParams): Promise<DoUploadResult> {
   try {
-    const { session, file, fileName = 'document.html', mimeType = 'text/html' } = params;
+    const { session, file, fileName = 'document.html', recordid, mimeType = 'text/html' } = params;
 
     const blob = new Blob([file], { type: `${mimeType};charset=utf-8` });
     const htmlFile = new File([blob], fileName, { type: mimeType });
@@ -115,11 +115,13 @@ export async function saveToCloud(params: SaveToCloudParams): Promise<DoUploadRe
           originFile: htmlFile,
         },
       ],
-      htmleditor: 'htmleditor',
+      htmleditor: 'htmleditor', recordid: recordid,
     };
 
     const response = await doUpload(uploadPayload);
+
     return response;
+    
   } catch (err: any) {
     console.error('Error in saveToCloud:', err);
     return {

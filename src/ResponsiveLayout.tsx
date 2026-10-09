@@ -44,6 +44,17 @@ export interface TopPageMenuItem {
   isDisabled: boolean;
 }
 
+export interface ResponsiveLayoutProps {
+  domainFunc: (dm: string) => void;
+}
+
+interface MenuSectionGroup {
+  id: string;
+  title: string;
+  items: MenuItem[];
+  isCollapsed?: boolean;
+}
+
 const ChevronUpIcon = ({ color = '#4F46E5', size = 14 }: { color?: string; size?: number }) =>
   createElement(
     'svg',
@@ -256,7 +267,7 @@ const CustomAlertBox: React.FC<CustomAlertBoxProps> = ({ visible, title, message
   );
 };
 
-export const ResponsiveLayout: React.FC = () => {
+export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ domainFunc }) => {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
 
@@ -287,6 +298,7 @@ export const ResponsiveLayout: React.FC = () => {
   });
 
   const [topPageMenuOnRight] = useState<TopPageMenuItem[]>([
+    { icon: 'globe', label: 'Customer Portal', isDisabled: false },
     { icon: 'print', label: 'Print', isDisabled: false },
     { icon: 'user', label: 'Profile', isDisabled: false },
     { icon: 'comments', label: 'Chat', isDisabled: false },
@@ -354,7 +366,7 @@ export const ResponsiveLayout: React.FC = () => {
   const [uid, setUid] = useState<string>('');
 
   const [topMenuData, setTopMenuData] = useState<MenuItem[]>([]);
-  const [leftMenuData, setLeftMenuData] = useState<MenuItem[]>([]);
+  const [leftMenuGroups, setLeftMenuGroups] = useState<MenuSectionGroup[]>([]);
   const [footerData, setFooterData] = useState<MenuItem[]>([]);
 
   const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
@@ -530,11 +542,30 @@ export const ResponsiveLayout: React.FC = () => {
 
     const loadLeftMenu = async () => {
       try {
-        const response = await menuLoader(2, 'f2b7a901-c8d3-4a52-b1e4-86d91c2f3e04');
-        setLeftMenuData(extractArray(response));
+        const menuConfigs = [
+          { id: 'f2b7a901-c8d3-4a52-b1e4-86d91c2f3e04', title: 'Main Categories' },
+          { id: '4c9a1dedbedde3529d0906426381926812b537eabcc0d', title: 'App Multi Finance' },
+          { id: '3588f87fb5ed9b9c93b0129a37b329b1736c18f3ac5ef', title: 'App F & B' },
+          { id: '0c47d73b2cfcb4487121754ed3d313c6176d0a758fa54', title: 'App Student Management System' },
+          { id: '26f281b80eaa274fb0e740e32232cb3f7b77d680162d2', title: 'App Banking' },
+        ];
+
+        const results = await Promise.all(
+          menuConfigs.map(async (cfg) => {
+            const resp = await menuLoader(2, cfg.id);
+            return {
+              id: cfg.id,
+              title: cfg.title,
+              items: extractArray(resp),
+              isCollapsed: false,
+            };
+          })
+        );
+
+        setLeftMenuGroups(results);
       } catch (err) {
         console.error('Error fetching Left Menu:', err);
-        setLeftMenuData([]);
+        setLeftMenuGroups([]);
       } finally {
         setLoadingLeftMenu(false);
       }
@@ -572,6 +603,12 @@ export const ResponsiveLayout: React.FC = () => {
     }
 
     fetchContentForMenu(item, DEFAULT_ROW_START, DEFAULT_ROW_END);
+  };
+
+  const toggleGroupCollapse = (groupId: string) => {
+    setLeftMenuGroups((prev) =>
+      prev.map((g) => (g.id === groupId ? { ...g, isCollapsed: !g.isCollapsed } : g))
+    );
   };
 
   const handleNavUpwards = () => {
@@ -817,6 +854,7 @@ export const ResponsiveLayout: React.FC = () => {
               const isPrintMenu = menuItem.label.toLowerCase() === 'print';
               const isChatMenu = menuItem.label.toLowerCase() === 'chat';
               const isLoginMenu = menuItem.label.toLowerCase() === 'login';
+              const isCustomerPortal = menuItem.label.toLowerCase() === 'customer portal';
 
               return (
                 <TouchableOpacity
@@ -840,6 +878,8 @@ export const ResponsiveLayout: React.FC = () => {
                       }
                     } else if (isLoginMenu) {
                       setIsLoginPanelOpen(true);
+                    } else if (isCustomerPortal) {
+                      domainFunc("customer portal");
                     } else {
                       console.log(`Clicked top right menu: ${menuItem.label}`);
                     }
@@ -928,29 +968,44 @@ export const ResponsiveLayout: React.FC = () => {
               <ActivityIndicator size="small" color="#4F46E5" />
             ) : (
               <ScrollView style={{ maxHeight: 220 }}>
-                {Array.isArray(leftMenuData) &&
-                  leftMenuData.map((item) => {
-                    const isActive = selectedMenu?.id === item.id;
-                    return (
-                      <TouchableOpacity
-                        key={`mobile-left-${item.id}`}
-                        style={[
-                          styles.leftMenuItem,
-                          isActive && styles.activeLeftMenuItem,
-                        ]}
-                        onPress={() => handleSelectMenu(item)}
-                      >
-                        <Text
-                          style={[
-                            styles.leftMenuText,
-                            isActive && styles.activeLeftMenuText,
-                          ]}
-                        >
-                          {item.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                {leftMenuGroups.map((group) => (
+                  <View key={`mobile-group-${group.id}`} style={{ marginBottom: 6 }}>
+                    <TouchableOpacity
+                      style={styles.groupHeaderRow}
+                      onPress={() => toggleGroupCollapse(group.id)}
+                    >
+                      <Text style={[styles.sectionHeader, { flex: 1, marginBottom: 0, color: '#334155' }]}>
+                        {group.title}
+                      </Text>
+                      <Text style={{ fontSize: 10, fontWeight: '700', color: '#64748B' }}>
+                        {group.isCollapsed ? '▼' : '▲'}
+                      </Text>
+                    </TouchableOpacity>
+                    {!group.isCollapsed &&
+                      group.items.map((item) => {
+                        const isActive = selectedMenu?.id === item.id;
+                        return (
+                          <TouchableOpacity
+                            key={`mobile-left-${item.id}`}
+                            style={[
+                              styles.leftMenuItem,
+                              isActive && styles.activeLeftMenuItem,
+                            ]}
+                            onPress={() => handleSelectMenu(item)}
+                          >
+                            <Text
+                              style={[
+                                styles.leftMenuText,
+                                isActive && styles.activeLeftMenuText,
+                              ]}
+                            >
+                              {item.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                  </View>
+                ))}
               </ScrollView>
             )}
           </View>
@@ -993,30 +1048,57 @@ export const ResponsiveLayout: React.FC = () => {
                   <ActivityIndicator size="small" color={getThemeTextColor()} style={{ marginTop: 12 }} />
                 ) : (
                   <ScrollView showsVerticalScrollIndicator={false}>
-                    {Array.isArray(leftMenuData) &&
-                      leftMenuData.map((item) => {
-                        const isActive = selectedMenu?.id === item.id;
-                        return (
-                          <TouchableOpacity
-                            key={`left-${item.id}`}
+                    {leftMenuGroups.map((group, groupIdx) => (
+                      <View key={`desktop-group-${group.id}`} style={groupIdx > 0 ? styles.groupDivider : undefined}>
+                        <TouchableOpacity
+                          style={styles.groupHeaderRow}
+                          onPress={() => toggleGroupCollapse(group.id)}
+                          activeOpacity={0.7}
+                        >
+                          <Text
                             style={[
-                              styles.leftMenuItem,
-                              isActive && { backgroundColor: getThemeItemActiveBg() },
+                              styles.sectionHeader,
+                              {
+                                color: currentTheme === 'grey' ? '#334155' : 'rgba(255,255,255,0.85)',
+                                flex: 1,
+                                marginBottom: 4,
+                                marginTop: groupIdx === 0 ? 0 : 8,
+                              },
                             ]}
-                            onPress={() => handleSelectMenu(item)}
                           >
-                            <Text
-                              style={[
-                                styles.leftMenuText,
-                                { color: getThemeTextColor(), textAlign: 'justify' },
-                                isActive && { fontWeight: '700' },
-                              ]}
-                            >
-                              {createElement('span', null, renderFontAwesomeIcon(item.icon), ` ${item.label}`)}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
+                            {group.title}
+                          </Text>
+                          <Text style={[styles.collapseToggleText, { color: getThemeTextColor() }]}>
+                            {group.isCollapsed ? '▸' : '▾'}
+                          </Text>
+                        </TouchableOpacity>
+
+                        {!group.isCollapsed &&
+                          group.items.map((item) => {
+                            const isActive = selectedMenu?.id === item.id;
+                            return (
+                              <TouchableOpacity
+                                key={`left-${item.id}`}
+                                style={[
+                                  styles.leftMenuItem,
+                                  isActive && { backgroundColor: getThemeItemActiveBg() },
+                                ]}
+                                onPress={() => handleSelectMenu(item)}
+                              >
+                                <Text
+                                  style={[
+                                    styles.leftMenuText,
+                                    { color: getThemeTextColor(), textAlign: 'justify' },
+                                    isActive && { fontWeight: '700' },
+                                  ]}
+                                >
+                                  {createElement('span', null, renderFontAwesomeIcon(item.icon), ` ${item.label}`)}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                      </View>
+                    ))}
                   </ScrollView>
                 )
               )}
@@ -1036,7 +1118,7 @@ export const ResponsiveLayout: React.FC = () => {
                   </View>
 
                   <Text style={styles.tableNavInfo}>
-                    Showing {rowStart} - {Math.min(rowEnd, totalRecords || rowEnd)} of {totalRecords || 'N/A'}
+                    Showing {rowStart}-{Math.min(rowEnd, totalRecords || rowEnd)} of {totalRecords || 'N/A'}
                   </Text>
                   <View style={styles.tableNavButtonGroup}>
                     <TouchableOpacity
@@ -1225,7 +1307,7 @@ export const ResponsiveLayout: React.FC = () => {
           onDeleteSuccess={() => {
             setIsViewPanelOpen(false);
           }}
-          onEditSuccess={() => {}}
+          onEditSuccess={() => { }}
           title={`View Record (${selectedMenu?.label || 'Item'})`}
           tableName={selectedMenu?.formid || selectedMenu?.id || ''}
           recordid={recordId || selectedRecordId}
@@ -1430,6 +1512,24 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     marginBottom: 8,
     marginHorizontal: 4,
+  },
+  groupHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    cursor: 'pointer',
+  },
+  collapseToggleText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  groupDivider: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    marginTop: 6,
+    paddingTop: 4,
   },
   leftMenuItem: {
     paddingHorizontal: 10,
