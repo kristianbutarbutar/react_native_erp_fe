@@ -180,7 +180,7 @@ export default function CustomerPortal({
         try {
             const menuId = item.id || item.objectid || item.value || item.pid;
             setSelectedTop3Id(menuId);
-            setSelectedLeftId(null);
+            setSelectedLeftId(null); // Ensure no left menu item is selected
             setLoadingLeftMenu(true);
 
             const params: LoadMenuParams = {
@@ -203,7 +203,7 @@ export default function CustomerPortal({
             setLeftMenuItems(leftMenus);
             setLoadingLeftMenu(false);
 
-            // Directly load the clicked Top 3 item's HTML content without overriding with leftMenus[0]
+            // Load the clicked Top 3 item's HTML content without auto-selecting any left menu items
             const targetPid = item.pid || item.id || item.objectid;
             if (targetPid && String(targetPid).trim() !== '') {
                 setLoadingContent(true);
