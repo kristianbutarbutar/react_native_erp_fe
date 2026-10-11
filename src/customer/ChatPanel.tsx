@@ -246,7 +246,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
   const [isClosed, setIsClosed] = useState<boolean>(false);
   const [isMemberBoxCollapsed, setIsMemberBoxCollapsed] = useState<boolean>(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false); // Hamburger menu toggle state for mobile view
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [messageText, setMessageText] = useState<string>('');
   const [members, setMembers] = useState<any[]>([]);
   const [activeToUID, setActiveToUID] = useState<string>('');
@@ -299,6 +299,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
   const wsRef = useRef<WebSocket | null>(null);
   const isConnectingRef = useRef<boolean>(false);
   const [connectWS, setConnectWS] = useState<boolean>(false);
+  
+  // Connection progress loading state for WebSocket
+  const [isWsConnecting, setIsWsConnecting] = useState<boolean>(true);
 
   const messageSeqCounterRef = useRef<number>(0);
   const heartbeatIntervalRef = useRef<any>(null);
@@ -382,11 +385,15 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
     }
 
     isConnectingRef.current = true;
+    setIsWsConnecting(true); // Show progress indicator popup
+
     const ws = new WebSocket(`${WS_URI}?uid=${uid}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
       isConnectingRef.current = false;
+      setIsWsConnecting(false); // Hide progress indicator once connected
+
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
@@ -458,6 +465,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
 
     ws.onerror = (error) => {
       isConnectingRef.current = false;
+      setIsWsConnecting(true); // Keep showing progress if error occurs
       if (ws.readyState !== WebSocket.CLOSED) {
         console.error('WebSocket error:', error);
       }
@@ -465,6 +473,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
 
     ws.onclose = () => {
       isConnectingRef.current = false;
+      setIsWsConnecting(true); // Show progress while reconnecting
+
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
         heartbeatIntervalRef.current = null;
@@ -772,6 +782,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
           multiple
           onChange={handleFileChange}
         />
+      )}
+
+      {/* WebSocket Connecting Progress Overlay */}
+      {isWsConnecting && (
+        <View style={styles.uploadProgressOverlay}>
+          <View style={styles.uploadProgressBox}>
+            <ActivityIndicator size="large" color="#4338CA" />
+            <Text style={styles.uploadProgressText}>Connecting to chat server...</Text>
+          </View>
+        </View>
       )}
 
       {isUploading && (
