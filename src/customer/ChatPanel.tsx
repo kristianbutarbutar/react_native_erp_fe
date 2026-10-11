@@ -998,7 +998,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
               </Text>
             ) : (
               messages.map((msg, idx) => {
-                const matchFile = msg.text ? msg.text.match(/file:<<<<<<([A-Za-z0-9]+)>>>>>>/) : null;
+                const matchFile = msg.text ? msg.text.match(/file:<<<<<<([A-Za-z0-9-]+)>>>>>>/) : null;
                 const __ufid = matchFile ? matchFile[1] : null;
 
                 const isCallMsg = msg.text && msg.text.includes('call:<<<<<<Calling>>>>>>');
