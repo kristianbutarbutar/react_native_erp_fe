@@ -201,17 +201,14 @@ export default function CustomerPortal({
                 leftMenus = response.result;
             }
             setLeftMenuItems(leftMenus);
+            setLoadingLeftMenu(false);
 
-            // Automatically select the first left menu item if available and load its HTML content
-            if (leftMenus.length > 0) {
-                const firstLeftItem = leftMenus[0];
-                const firstLeftId = firstLeftItem.id || firstLeftItem.pid || firstLeftItem.objectid || 'left-item-0';
-                setSelectedLeftId(firstLeftId);
-
+            // Directly load the clicked Top 3 item's HTML content without overriding with leftMenus[0]
+            const targetPid = item.pid || item.id || item.objectid;
+            if (targetPid && String(targetPid).trim() !== '') {
                 setLoadingContent(true);
-                const hasHtmlFile = firstLeftItem.html_file || firstLeftItem.record?.html_file;
                 const stream = await showHtml({
-                    record: hasHtmlFile ? firstLeftItem : { pid: firstLeftItem.pid || firstLeftItem.id || firstLeftItem.objectid },
+                    record: item,
                     sessionId: sessionid || '',
                 });
 
@@ -221,22 +218,6 @@ export default function CustomerPortal({
                     setHtmlContent(null);
                 }
                 setLoadingContent(false);
-            } else {
-                const targetPid = item.pid || item.id || item.objectid;
-                if (targetPid && String(targetPid).trim() !== '') {
-                    setLoadingContent(true);
-                    const stream = await showHtml({
-                        record: item,
-                        sessionId: sessionid || '',
-                    });
-
-                    if (stream) {
-                        setHtmlContent(stream);
-                    } else {
-                        setHtmlContent(null);
-                    }
-                    setLoadingContent(false);
-                }
             }
         } catch (error) {
             console.error('Failed in handleTop3MenuPress:', error);
@@ -437,10 +418,10 @@ export default function CustomerPortal({
                             {item.type === 'image' ? (
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                     <Image source={{ uri: item.uri }} style={styles.flagIcon} />
-                                    <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.textColor, marginLeft: 6 }]}>Indonesia (ID)</Text>
+                                    <Text style={[styles.font12, { color: theme.textColor, marginLeft: 6 }]}>Indonesia (ID)</Text>
                                 </View>
                             ) : (
-                                <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.textColor, fontWeight: '500' }]}>
+                                <Text style={[styles.font12, { color: theme.textColor, fontWeight: '500' }]}>
                                     {item.icon} {item.label}
                                 </Text>
                             )}
@@ -451,7 +432,7 @@ export default function CustomerPortal({
 
             {/* ================= TOP 2 BAR (Breadcrumbs & Sub-nav) ================= */}
             <View style={[styles.topBox2, { backgroundColor: theme.topBoxesBg }]}>
-                <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.textColor, opacity: 0.7, fontWeight: '500', textAlign: 'center' }]} numberOfLines={1}>
+                <Text style={[styles.font12, { color: theme.textColor, opacity: 0.7, fontWeight: '500', textAlign: 'center' }]} numberOfLines={1}>
                     Elevating Your Future • Solutions & Enterprise Gateway
                 </Text>
             </View>
@@ -464,13 +445,13 @@ export default function CustomerPortal({
                             style={[styles.leftMenuHamburger, { backgroundColor: theme.accentColor + '15' }]}
                             onPress={() => setIsMobileLeftMenuOpen(!isMobileLeftMenuOpen)}
                         >
-                            <Text style={[styles.font11, { color: theme.accentColor, fontWeight: 'bold' }]}>
+                            <Text style={[styles.font12, { color: theme.accentColor, fontWeight: 'bold' }]}>
                                 {isMobileLeftMenuOpen ? '✕ ' : '☰ '}
                             </Text>
                         </TouchableOpacity>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.top3MenuScroll}>
                             {loadingTop3 ? (
-                                <Text style={[styles.font11, { color: theme.textColor }]}>Loading categories...</Text>
+                                <Text style={[styles.font12, { color: theme.textColor }]}>Loading categories...</Text>
                             ) : top3MenuItems.length > 0 ? (
                                 top3MenuItems.map((item, index) => {
                                     const itemId = item.id || item.objectid || item.value || item.pid;
@@ -485,7 +466,7 @@ export default function CustomerPortal({
                                             onPress={() => handleTop3MenuPress(item)}
                                         >
                                             <Text style={[
-                                                styles.font11,
+                                                styles.font12,
                                                 { color: isSelected ? '#FFFFFF' : theme.textColor, fontWeight: isSelected ? '700' : '500' }
                                             ]}>
                                                 {item.label}
@@ -494,7 +475,7 @@ export default function CustomerPortal({
                                     );
                                 })
                             ) : (
-                                <Text style={[styles.font11, { color: theme.textColor }]}>No categories available</Text>
+                                <Text style={[styles.font12, { color: theme.textColor }]}>No categories available</Text>
                             )}
                         </ScrollView>
                     </View>
@@ -536,9 +517,9 @@ export default function CustomerPortal({
             {/* Mobile Left Menu Dropdown */}
             {isMobile && isMobileLeftMenuOpen && (
                 <View style={[styles.mobileLeftDropdown, { backgroundColor: theme.cardBg }]}>
-                    <Text style={[isMobile ? styles.font12 : styles.font11, styles.menuHeader, { color: theme.accentColor }]}>Modules:</Text>
+                    <Text style={[styles.font12, styles.menuHeader, { color: theme.accentColor }]}>Modules:</Text>
                     {loadingLeftMenu ? (
-                        <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.textColor }]}>Loading modules...</Text>
+                        <Text style={[styles.font12, { color: theme.textColor }]}>Loading modules...</Text>
                     ) : leftMenuItems.length > 0 ? (
                         leftMenuItems.map((link, idx) => {
                             const linkId = link.id || link.pid || link.objectid || `left-item-${idx}`;
@@ -556,7 +537,7 @@ export default function CustomerPortal({
                                     }}
                                 >
                                     <Text style={[
-                                        isMobile ? styles.font12 : styles.font11,
+                                        styles.font12,
                                         { color: isSelected ? theme.accentColor : theme.textColor, fontWeight: isSelected ? '700' : '500' }
                                     ]}>
                                         {link.label}
@@ -565,7 +546,7 @@ export default function CustomerPortal({
                             );
                         })
                     ) : (
-                        <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.textColor }]}>No modules found</Text>
+                        <Text style={[styles.font12, { color: theme.textColor }]}>No modules found</Text>
                     )}
                 </View>
             )}
@@ -627,7 +608,7 @@ export default function CustomerPortal({
                     <View style={[styles.contentBox, { backgroundColor: theme.cardBg, padding: isMobile ? 2 : 7 }]}>
                         {loadingContent ? (
                             <View style={styles.loadingContainer}>
-                                <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.textColor, opacity: 0.6, fontStyle: 'italic' }]}>Loading secure document stream...</Text>
+                                <Text style={[styles.font12, { color: theme.textColor, opacity: 0.6, fontStyle: 'italic' }]}>Loading secure document stream...</Text>
                             </View>
                         ) : htmlContent ? (
                             <iframe
@@ -644,13 +625,13 @@ export default function CustomerPortal({
 
             {/* ================= BOTTOM FOOTER BAR ================= */}
             <View style={[styles.bottomMenuBox, { backgroundColor: theme.cardBg }]}>
-                <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.textColor, opacity: 0.7, textAlign: 'center' }]} numberOfLines={1}>
+                <Text style={[styles.font12, { color: theme.textColor, opacity: 0.7, textAlign: 'center' }]} numberOfLines={1}>
                     Quick Links | Privacy Policy | Terms of Service | Support Desk
                 </Text>
             </View>
 
             <View style={[styles.bottomBox, { backgroundColor: theme.cardBg }]}>
-                <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.textColor, opacity: 0.6, textAlign: 'center' }]} numberOfLines={1}>
+                <Text style={[styles.font12, { color: theme.textColor, opacity: 0.6, textAlign: 'center' }]} numberOfLines={1}>
                     © 2026 {domain}. All rights reserved. Powered by High-Performance Enterprise Solutions.
                 </Text>
             </View>
@@ -662,9 +643,12 @@ export default function CustomerPortal({
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        width: '100%',
-        height: '100%',
+        width: '100vw',
+        height: '100vh',
+        maxWidth: '100%',
+        maxHeight: '100%',
         borderWidth: 0,
+        overflow: 'hidden',
     },
     font11: {
         fontSize: 11,
