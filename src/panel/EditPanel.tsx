@@ -502,7 +502,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
         const htmlType = matchedCol?.html_type?.toLowerCase().trim() || '';
         const dtType = matchedCol?.dt_type?.toLowerCase().trim() || '';
         const isTimestamp = htmlType === 'date' || htmlType === 'timestamp' || htmlType.includes('timestamp') || dtType.includes('date') || dtType.includes('timestamp');
-        const isHtml = htmlType === 'html';
+        const isHtml = htmlType === 'html' || key.toLowerCase() === 'html_file';
         const isDropdown = htmlType === 'dropdown';
 
         if (isHtml) {
@@ -565,7 +565,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
     const dtType = col.dt_type?.toLowerCase().trim() || '';
     const isFileField = htmlType === 'file';
     const isIconField = htmlType === 'icon';
-    const isHtmlField = htmlType === 'html';
+    const isHtmlField = htmlType === 'html' || colKey === 'html_file';
     const isDateOrTimestamp = htmlType === 'date' || htmlType === 'timestamp' || htmlType.includes('timestamp') || dtType.includes('date') || dtType.includes('timestamp');
     const isMoneyType = dtType.includes('money') || htmlType.includes('money');
     const isIdField = colKey === 'id';
@@ -598,7 +598,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
                 isDesktop && styles.desktopCompactInput,
                 styles.disabledField,
                 { flex: 1, marginTop: 0 },
-                !isDesktop && { height: 24, fontSize: COMPACT_FONT_SIZE },
+                !isDesktop && { height: 40, fontSize: 12 },
                 isDesktop && isMaximized && { height: 20 },
               ]}
               value={String(rawValue)}
@@ -610,13 +610,13 @@ export const EditPanel: React.FC<EditPanelProps> = ({
                 style={[
                   styles.htmlEditorBtn,
                   isDesktop && styles.desktopCompactFileActionBtn,
-                  !isDesktop && { height: 24, paddingHorizontal: 8 },
+                  !isDesktop && { height: 40, paddingHorizontal: 12 },
                   isDesktop && isMaximized && { height: 20 },
                 ]}
                 onPress={() => handleOpenHtmlEditor(col.col_name)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.htmlEditorBtnText, isDesktop && styles.desktopCompactBtnText, !isDesktop && { fontSize: 11 }]}>Html Editor</Text>
+                <Text style={[styles.htmlEditorBtnText, isDesktop && styles.desktopCompactBtnText, !isDesktop && { fontSize: 12 }]}>Html Editor</Text>
               </TouchableOpacity>
             )}
           </View>
