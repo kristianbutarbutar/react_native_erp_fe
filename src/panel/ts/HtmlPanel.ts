@@ -1,7 +1,7 @@
 // panel/ts/HtmlPanel.ts
 
 import { doUpload, type DoUploadResult } from './../../customer/ts/ObjectFile';
-import {DOMAIN_UPLOAD_WEB} from '../../global';
+import { DOMAIN_UPLOAD_WEB } from '../../global';
 
 export interface TableFormatStyles {
   scope: 'cell' | 'row' | 'column' | 'selected-columns' | 'table';
@@ -21,10 +21,24 @@ export interface SaveToCloudParams {
   file: string;
   fileName?: string;
   mimeType?: string;
+  recordid?: string | number;
   [key: string]: any;
 }
 
 export interface ReadFileParams {
+  record?: Record<string, any> | null;
+  sessionId?: string;
+  [key: string]: any;
+}
+
+export interface ReadFileByPidParams {
+  record?: Record<string, any> | null;
+  sessionId?: string;
+  pid?: string | number;
+  [key: string]: any;
+}
+
+export interface FetchHtmlStreamParams {
   record?: Record<string, any> | null;
   sessionId?: string;
   [key: string]: any;
@@ -67,7 +81,7 @@ export const DEFAULT_HTML_CONTENT = `
  * Reads file stream/binary contents from the server API using an HTTP GET request
  * with query parameters for `fileName` and `sessionid`.
  * 
- * @param params - Object containing record and sessionId
+ * @param params Object containing record and sessionId
  * @returns Promise resolving to the file text stream response.
  */
 export async function readFile(params: ReadFileParams): Promise<string | null> {
@@ -78,7 +92,7 @@ export async function readFile(params: ReadFileParams): Promise<string | null> {
     const fileName = encodeURIComponent(String(record.savedname).trim());
     const sessionid = encodeURIComponent(String(sessionId || 'sess_12345').trim());
 
-    const url = `${DOMAIN_UPLOAD_WEB()}/api/read?fileName=${fileName}&sessionid=${sessionid}`; //`http://localhost:3002/api/read?fileName=${fileName}&sessionid=${sessionid}`;
+    const url = `${DOMAIN_UPLOAD_WEB()}/api/read?fileName=${fileName}&sessionid=${sessionid}`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -92,6 +106,85 @@ export async function readFile(params: ReadFileParams): Promise<string | null> {
     return fileText;
   } catch (err: any) {
     console.error('Error in readFile (GET):', err);
+    return null;
+  }
+}
+
+/**
+ * Queries object data via POST based on the provided PID parameter.
+ * 
+ * @param params Object containing pid, record, and sessionId
+ * @returns Promise resolving to the parsed response JSON or null on failure.
+ */
+export async function readFileByPID(params: ReadFileByPidParams): Promise<any> {
+  try {
+    const { record } = params;
+    const targetPid = record?.html_file || '';
+
+    if (targetPid === undefined || targetPid === null) {
+      console.warn('readFileByPID: Missing PID in input parameters.');
+      return null;
+    }
+
+    const queryEndpoint = '/api/query-object';
+
+    const payload = {
+      objectid: 'UPLOADED_FILES_FORM_ID',
+      whereClause: [
+        {
+          col_name: 'pid',
+          value: targetPid,
+        },
+      ],
+      noOfRow: 1,
+    };
+
+    const response = await fetch(queryEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to query object by PID: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (err: any) {
+    console.error('Error in readFileByPID:', err);
+    return null;
+  }
+}
+
+/**
+ * Fetches HTML stream by querying the file record via PID and reading its binary contents.
+ * 
+ * @param params Object containing record and sessionId
+ * @returns Promise resolving to the file text stream content.
+ */
+export async function fetchHtmlStream(params: FetchHtmlStreamParams): Promise<string | null> {
+  try {
+    const queryResult = await readFileByPID(params);
+    console.log("fetchHtmlStream > queryResult > ", JSON.stringify(queryResult));
+    if (!queryResult || !queryResult.data || !queryResult.data[0]) {
+      console.warn('fetchHtmlStream: Record not found via PID query.');
+      return null;
+    }
+
+    const resp = queryResult.data[0];
+    const sessionId = params.sessionId || params.sessionid;
+
+    const streamText = await readFile({
+      sessionId: sessionId,
+      record: resp,
+    });
+
+    return streamText;
+  } catch (err: any) {
+    console.error('Error in fetchHtmlStream:', err);
     return null;
   }
 }
@@ -115,7 +208,8 @@ export async function saveToCloud(params: SaveToCloudParams): Promise<DoUploadRe
           originFile: htmlFile,
         },
       ],
-      htmleditor: 'htmleditor', recordid: recordid,
+      htmleditor: 'htmleditor',
+      recordid: recordid,
     };
 
     const response = await doUpload(uploadPayload);

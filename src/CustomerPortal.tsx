@@ -1,3 +1,5 @@
+// customer/CustomerPortal.tsx
+
 import React, { useState, useEffect } from 'react';
 import {
     StyleSheet,
@@ -9,7 +11,7 @@ import {
     useWindowDimensions,
     Animated,
 } from 'react-native';
-import { loadMenu } from './ts/CustomerPortal'; // Import the loadMenu function and types
+import { loadMenu, showHtml } from './ts/CustomerPortal';
 
 interface CustomerPortalProps {
     objectid?: string;
@@ -20,6 +22,13 @@ interface CustomerPortalProps {
     domainFunc: (dm: string) => void;
 }
 
+export interface LoadMenuParams {
+  objectid: string;
+  whereClause: Array<{ col_name: string; value: string }>;
+  filterColumns: Array<string>;
+  sessionid: string;
+}
+
 type ThemeMode = 'goldenYellow' | 'comfortDark' | 'whiteBlue';
 
 interface ThemeConfig {
@@ -27,36 +36,39 @@ interface ThemeConfig {
     topBoxesBg: string;
     textColor: string;
     accentColor: string;
+    cardBg: string;
 }
 
 const themes: Record<ThemeMode, ThemeConfig> = {
     goldenYellow: {
         name: 'goldenYellow',
-        topBoxesBg: '#FFF8E7', // Soft warm golden cream
+        topBoxesBg: '#FFFFFF',
         textColor: '#5D4037',
-        accentColor: '#D9A74A',
+        accentColor: '#ffb3b3', // Updated to #ffb3b3
+        cardBg: '#FFFFFF',
     },
     comfortDark: {
         name: 'comfortDark',
-        topBoxesBg: '#363434', // Updated black theme hex #363434
-        textColor: '#FFFFFF',  // Pure white text for dark theme
+        topBoxesBg: '#FFFFFF',
+        textColor: '#1E293B',
         accentColor: '#3B82F6',
+        cardBg: '#FFFFFF',
     },
     whiteBlue: {
         name: 'whiteBlue',
-        topBoxesBg: '#F0F4F8', // Soft white-blue degradation
-        textColor: '#334155',
-        accentColor: '#0284C7',
+        topBoxesBg: '#FFFFFF',
+        textColor: '#0F172A',
+        accentColor: '#E11D48',
+        cardBg: '#FFFFFF',
     },
 };
 
-// 4-dimension box rotating faces sequence
 const dimensionFaces = ['AM', 'GR', 'EA', 'AT'];
 
 export default function CustomerPortal({
     objectid,
     recordid,
-    domain = 'example.com',
+    domain = 'amgreat.id',
     subdomain = 'portal',
     sessionid,
     domainFunc,
@@ -71,9 +83,19 @@ export default function CustomerPortal({
     const [isMobileLeftMenuOpen, setIsMobileLeftMenuOpen] = useState<boolean>(false);
     const [faceIndex, setFaceIndex] = useState<number>(0);
 
-    // Top 3 Menu Data State
+    // Top 3 Menu Data State & Selection
     const [top3MenuItems, setTop3MenuItems] = useState<any[]>([]);
     const [loadingTop3, setLoadingTop3] = useState<boolean>(false);
+    const [selectedTop3Id, setSelectedTop3Id] = useState<string | null>(null);
+
+    // Left Menu Data State & Selection
+    const [leftMenuItems, setLeftMenuItems] = useState<any[]>([]);
+    const [loadingLeftMenu, setLoadingLeftMenu] = useState<boolean>(false);
+    const [selectedLeftId, setSelectedLeftId] = useState<string | null>(null);
+
+    // HTML Content State via showHtml
+    const [htmlContent, setHtmlContent] = useState<string | null>(null);
+    const [loadingContent, setLoadingContent] = useState<boolean>(false);
 
     // Animation values for rotating box effect
     const [translateAnim] = useState(new Animated.Value(0));
@@ -81,39 +103,180 @@ export default function CustomerPortal({
 
     const theme = themes[currentTheme];
 
-    // Onload handler to fetch Top 3 menu items via loadMenu
+    // Onload handler to fetch Top 3 menu items and set default 1st record HTML & Left Menu
     const handleLoadTop3Menu = async () => {
         try {
             setLoadingTop3(true);
-            const params = {
+            const params: LoadMenuParams = {
                 objectid: '052adcee-50c0-4602-9fb7-43d080eae050',
-                domain: 'header3', sessionid:"sessionid"
+                whereClause: [{ col_name: 'pid', value: '507e1f77-f2c2-4a72-887c-780e0d6cccc3' }],
+                filterColumns: [],
+                sessionid: sessionid || '',
             };
 
-            const response = await loadMenu(params );
+            const response = await loadMenu(params);
             
-            // Assuming response is an array or contains an array of items with a 'label' property
+            let menus: any[] = [];
             if (Array.isArray(response)) {
-                setTop3MenuItems(response);
+                menus = response;
             } else if (response && Array.isArray(response.data)) {
-                setTop3MenuItems(response.data);
+                menus = response.data;
             } else if (response && Array.isArray(response.result)) {
-                setTop3MenuItems(response.result);
-            } else {
-                setTop3MenuItems([]);
+                menus = response.result;
+            }
+
+            setTop3MenuItems(menus);
+
+            // If menus are not empty, load default 1st record content and left menu
+            if (menus.length > 0 && !recordid) {
+                const firstRecord = menus[0];
+                const menuId = firstRecord.id || firstRecord.objectid || firstRecord.value || firstRecord.pid;
+                setSelectedTop3Id(menuId);
+
+                // 1. Fetch Left Menu for 1st record
+                setLoadingLeftMenu(true);
+                const leftParams: LoadMenuParams = {
+                    objectid: '052adcee-50c0-4602-9fb7-43d080eae050',
+                    whereClause: [{ col_name: 'pid', value: menuId }],
+                    filterColumns: [],
+                    sessionid: sessionid || '',
+                };
+
+                const leftResponse = await loadMenu(leftParams);
+                let leftMenus: any[] = [];
+                if (Array.isArray(leftResponse)) {
+                    leftMenus = leftResponse;
+                } else if (leftResponse && Array.isArray(leftResponse.data)) {
+                    leftMenus = leftResponse.data;
+                } else if (leftResponse && Array.isArray(leftResponse.result)) {
+                    leftMenus = leftResponse.result;
+                }
+                setLeftMenuItems(leftMenus);
+                setLoadingLeftMenu(false);
+
+                // 2. Fetch default HTML stream via showHtml for 1st record
+                setLoadingContent(true);
+                const stream = await showHtml({
+                    record: firstRecord,
+                    sessionId: sessionid || '',
+                });
+
+                if (stream) {
+                    setHtmlContent(stream);
+                }
+                setLoadingContent(false);
             }
         } catch (error) {
             console.error('Failed to load Top 3 menu:', error);
             setTop3MenuItems([]);
         } finally {
             setLoadingTop3(false);
+            setLoadingLeftMenu(false);
         }
     };
 
-    // Trigger onload handler on mount
+    // Handler when a Top 3 menu item is clicked
+    const handleTop3MenuPress = async (item: any) => {
+        try {
+            const menuId = item.id || item.objectid || item.value || item.pid;
+            setSelectedTop3Id(menuId);
+            setSelectedLeftId(null);
+            setLoadingLeftMenu(true);
+            
+            const params: LoadMenuParams = {
+                objectid: '052adcee-50c0-4602-9fb7-43d080eae050',
+                whereClause: [{ col_name: 'pid', value: menuId }],
+                filterColumns: [],
+                sessionid: sessionid || '',
+            };
+
+            const response = await loadMenu(params);
+
+            if (Array.isArray(response)) {
+                setLeftMenuItems(response);
+            } else if (response && Array.isArray(response.data)) {
+                setLeftMenuItems(response.data);
+            } else if (response && Array.isArray(response.result)) {
+                setLeftMenuItems(response.result);
+            } else {
+                setLeftMenuItems([]);
+            }
+
+            const targetPid = item.pid || item.id || item.objectid;
+            if (targetPid && String(targetPid).trim() !== '') {
+                setLoadingContent(true);
+                const stream = await showHtml({
+                    record: item,
+                    sessionId: sessionid || '',
+                });
+
+                if (stream) {
+                    setHtmlContent(stream);
+                } else {
+                    setHtmlContent(null);
+                }
+                setLoadingContent(false);
+            }
+        } catch (error) {
+            console.error('Failed in handleTop3MenuPress:', error);
+            setLeftMenuItems([]);
+        } finally {
+            setLoadingLeftMenu(false);
+            setLoadingContent(false);
+        }
+    };
+
+    // Handler when a left menu link / item is clicked
+    const handleLeftMenuPress = async (linkItem: any, index: number) => {
+        try {
+            const linkId = linkItem.id || linkItem.pid || linkItem.objectid || `left-item-${index}`;
+            setSelectedLeftId(linkId);
+            setLoadingContent(true);
+            const hasHtmlFile = linkItem.html_file || linkItem.record?.html_file;
+
+            if (hasHtmlFile && String(hasHtmlFile).trim() !== '') {
+                const stream = await showHtml({
+                    record: linkItem,
+                    sessionId: sessionid || '',
+                });
+
+                if (stream) {
+                    setHtmlContent(stream);
+                } else {
+                    setHtmlContent(null);
+                }
+            } else {
+                const stream = await showHtml({
+                    record: { pid: linkItem.pid || linkItem.id || linkItem.objectid },
+                    sessionId: sessionid || 'sess_12345',
+                });
+
+                if (stream) {
+                    setHtmlContent(stream);
+                } else {
+                    setHtmlContent(null);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch HTML content stream:', error);
+            setHtmlContent(null);
+        } finally {
+            setLoadingContent(false);
+        }
+    };
+
+    // Trigger onload handler on mount & fetch initial content if recordid is present
     useEffect(() => {
         handleLoadTop3Menu();
-    }, []);
+        if (recordid) {
+            setSelectedLeftId(recordid);
+            showHtml({ record: { pid: recordid }, sessionId: sessionid })
+                .then((stream) => {
+                    if (stream) setHtmlContent(stream);
+                })
+                .catch((err) => console.error('Initial HTML load error:', err));
+        }
+    }, [recordid]);
 
     // 4-dimension box rotation interval effect
     useEffect(() => {
@@ -151,7 +314,6 @@ export default function CustomerPortal({
         return () => clearInterval(interval);
     }, [translateAnim, opacityAnim]);
 
-    // Handler for top menu item clicks
     const handleMenuPress = (id: string) => {
         if (id === 'management') {
             domainFunc('management');
@@ -159,7 +321,6 @@ export default function CustomerPortal({
         setIsMobileTopMenuOpen(false);
     };
 
-    // Top Left Menu Hook items
     const topLeftMenu = [
         { id: 'flag', type: 'image', label: 'ID', uri: 'https://flagcdn.com/w20/id.png' },
         { id: 'management', type: 'text', icon: '⚙️', label: 'Management' },
@@ -169,34 +330,32 @@ export default function CustomerPortal({
         { id: 'login', type: 'text', icon: '🔑', label: 'Login' },
     ];
 
-    const navigationLinks = ['Dashboard', 'Profile', 'Settings', 'Reports', 'Support'];
     const currentCode = dimensionFaces[faceIndex];
 
     return (
         <View style={[styles.container, { backgroundColor: theme.topBoxesBg }]}>
 
-            {/* ================= TOP 1 BOX ================= */}
-            <View style={[styles.topBox1, { backgroundColor: theme.topBoxesBg }]}>
+            {/* ================= TOP 1 BAR (Header & Brand) ================= */}
+            <View style={[styles.topBox1, { backgroundColor: theme.cardBg }]}>
                 <View style={styles.top1Left}>
                     {!isMobile && (
-                        <>
-                            <Text style={[styles.font11, { color: theme.textColor, marginRight: 6 }]}></Text>
+                        <View style={styles.themeSelectorContainer}>
                             <TouchableOpacity
-                                style={[styles.circle, { backgroundColor: '#FFF8E7', borderWidth: currentTheme === 'goldenYellow' ? 2 : 1, borderColor: '#D9A74A' }]}
+                                style={[styles.circle, { backgroundColor: '#ffb3b3', borderWidth: currentTheme === 'goldenYellow' ? 2 : 0, borderColor: '#D97706' }]}
                                 onPress={() => setCurrentTheme('goldenYellow')}
                             />
                             <TouchableOpacity
-                                style={[styles.circle, { backgroundColor: '#363434', borderWidth: currentTheme === 'comfortDark' ? 2 : 1, borderColor: '#3B82F6' }]}
+                                style={[styles.circle, { backgroundColor: '#1E293B', borderWidth: currentTheme === 'comfortDark' ? 2 : 0, borderColor: '#3B82F6' }]}
                                 onPress={() => setCurrentTheme('comfortDark')}
                             />
                             <TouchableOpacity
-                                style={[styles.circle, { backgroundColor: '#F0F4F8', borderWidth: currentTheme === 'whiteBlue' ? 2 : 1, borderColor: '#0284C7' }]}
+                                style={[styles.circle, { backgroundColor: '#0284C7', borderWidth: currentTheme === 'whiteBlue' ? 2 : 0, borderColor: '#E11D48' }]}
                                 onPress={() => setCurrentTheme('whiteBlue')}
                             />
-                        </>
+                        </View>
                     )}
 
-                    {/* 4-Dimension Rotating Box Carousel */}
+                    {/* 4-Dimension Dynamic Box Badge */}
                     <View style={styles.dimensionWrapper}>
                         <Animated.View
                             style={[
@@ -212,17 +371,15 @@ export default function CustomerPortal({
                                 {currentCode}
                             </Text>
                         </Animated.View>
-                        <Text style={[styles.font11, { color: theme.textColor, marginLeft: 6, fontWeight: '600' }]} numberOfLines={1}>
-                        </Text>
                     </View>
                 </View>
 
                 {isMobile ? (
                     <TouchableOpacity
-                        style={styles.hamburgerButton}
+                        style={[styles.hamburgerButton, { backgroundColor: theme.accentColor + '15' }]}
                         onPress={() => setIsMobileTopMenuOpen(!isMobileTopMenuOpen)}
                     >
-                        <Text style={[styles.font11, { color: theme.textColor, fontWeight: 'bold' }]}>
+                        <Text style={[styles.font11, { color: theme.accentColor, fontWeight: 'bold' }]}>
                             {isMobileTopMenuOpen ? '✕ Menu' : '☰ Menu'}
                         </Text>
                     </TouchableOpacity>
@@ -237,7 +394,7 @@ export default function CustomerPortal({
                                 {item.type === 'image' ? (
                                     <Image source={{ uri: item.uri }} style={styles.flagIcon} />
                                 ) : (
-                                    <Text style={[styles.font11, { color: theme.textColor }]}>
+                                    <Text style={[styles.font11, { color: theme.textColor, fontWeight: '500' }]}>
                                         {item.icon} {item.label}
                                     </Text>
                                 )}
@@ -247,9 +404,9 @@ export default function CustomerPortal({
                 )}
             </View>
 
-            {/* Mobile Dropdown Menu for Top 1 Box */}
+            {/* Mobile Dropdown Menu for Top 1 */}
             {isMobile && isMobileTopMenuOpen && (
-                <View style={[styles.mobileDropdown, { backgroundColor: theme.topBoxesBg }]}>
+                <View style={[styles.mobileDropdown, { backgroundColor: theme.cardBg }]}>
                     {topLeftMenu.map((item) => (
                         <TouchableOpacity
                             key={item.id}
@@ -262,7 +419,7 @@ export default function CustomerPortal({
                                     <Text style={[styles.font11, { color: theme.textColor, marginLeft: 6 }]}>Indonesia (ID)</Text>
                                 </View>
                             ) : (
-                                <Text style={[styles.font11, { color: theme.textColor }]}>
+                                <Text style={[styles.font11, { color: theme.textColor, fontWeight: '500' }]}>
                                     {item.icon} {item.label}
                                 </Text>
                             )}
@@ -271,19 +428,19 @@ export default function CustomerPortal({
                 </View>
             )}
 
-            {/* ================= TOP 2 BOX ================= */}
+            {/* ================= TOP 2 BAR (Breadcrumbs & Sub-nav) ================= */}
             <View style={[styles.topBox2, { backgroundColor: theme.topBoxesBg }]}>
-                <Text style={[styles.font11, { color: theme.textColor, textAlign: 'center' }]} numberOfLines={1}>
-                    Top 2 Box — Navigation & Breadcrumbs
+                <Text style={[styles.font11, { color: theme.textColor, opacity: 0.7, fontWeight: '500', textAlign: 'center' }]} numberOfLines={1}>
+                    Elevating Your Future • Solutions & Enterprise Gateway
                 </Text>
             </View>
 
-            {/* ================= TOP 3 BOX (Displays loaded menu labels) ================= */}
-            <View style={[styles.topBox3, { backgroundColor: theme.topBoxesBg }]}>
+            {/* ================= TOP 3 BAR (Main Category Tabs) ================= */}
+            <View style={[styles.topBox3, { backgroundColor: theme.cardBg }]}>
                 {isMobile ? (
                     <View style={styles.top3MobileLeftContainer}>
                         <TouchableOpacity
-                            style={styles.leftMenuHamburger}
+                            style={[styles.leftMenuHamburger, { backgroundColor: theme.accentColor + '15' }]}
                             onPress={() => setIsMobileLeftMenuOpen(!isMobileLeftMenuOpen)}
                         >
                             <Text style={[styles.font11, { color: theme.accentColor, fontWeight: 'bold' }]}>
@@ -292,15 +449,31 @@ export default function CustomerPortal({
                         </TouchableOpacity>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.top3MenuScroll}>
                             {loadingTop3 ? (
-                                <Text style={[styles.font11, { color: theme.textColor }]}>Loading...</Text>
+                                <Text style={[styles.font11, { color: theme.textColor }]}>Loading categories...</Text>
                             ) : top3MenuItems.length > 0 ? (
-                                top3MenuItems.map((item, index) => (
-                                    <TouchableOpacity key={index} style={styles.top3MenuItem}>
-                                        <Text style={[styles.font11, { color: theme.textColor }]}>{item.label}</Text>
-                                    </TouchableOpacity>
-                                ))
+                                top3MenuItems.map((item, index) => {
+                                    const itemId = item.id || item.objectid || item.value || item.pid;
+                                    const isSelected = selectedTop3Id === itemId;
+                                    return (
+                                        <TouchableOpacity 
+                                            key={index} 
+                                            style={[
+                                                styles.top3MenuItem,
+                                                isSelected && { backgroundColor: theme.accentColor, borderRadius: 6 }
+                                            ]}
+                                            onPress={() => handleTop3MenuPress(item)}
+                                        >
+                                            <Text style={[
+                                                styles.font11, 
+                                                { color: isSelected ? '#FFFFFF' : theme.textColor, fontWeight: isSelected ? '700' : '500' }
+                                            ]}>
+                                                {item.label}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })
                             ) : (
-                                <Text style={[styles.font11, { color: theme.textColor }]}>Top 3 Box — Status & Notifications</Text>
+                                <Text style={[styles.font11, { color: theme.textColor }]}>No categories available</Text>
                             )}
                         </ScrollView>
                     </View>
@@ -308,42 +481,81 @@ export default function CustomerPortal({
                     <View style={styles.topLeftBoxHeader}>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.top3MenuScrollCenter}>
                             {loadingTop3 ? (
-                                <Text style={[styles.font11, { color: theme.textColor }]}>Loading menu...</Text>
+                                <Text style={[styles.font11, { color: theme.textColor }]}>Loading categories...</Text>
                             ) : top3MenuItems.length > 0 ? (
-                                top3MenuItems.map((item, index) => (
-                                    <TouchableOpacity key={index} style={styles.top3MenuItem}>
-                                        <Text style={[styles.font11, { color: theme.textColor, fontWeight: '500' }]}>{item.label}</Text>
-                                    </TouchableOpacity>
-                                ))
+                                top3MenuItems.map((item, index) => {
+                                    const itemId = item.id || item.objectid || item.value || item.pid;
+                                    const isSelected = selectedTop3Id === itemId;
+                                    return (
+                                        <TouchableOpacity 
+                                            key={index} 
+                                            style={[
+                                                styles.top3MenuItem,
+                                                isSelected && { backgroundColor: theme.accentColor, borderRadius: 6 }
+                                            ]}
+                                            onPress={() => handleTop3MenuPress(item)}
+                                        >
+                                            <Text style={[
+                                                styles.font11, 
+                                                { color: isSelected ? '#FFFFFF' : theme.textColor, fontWeight: isSelected ? '700' : '500' }
+                                            ]}>
+                                                {item.label}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })
                             ) : (
-                                <Text style={[styles.font11, { color: theme.textColor }]}>Top 3 Box — Status & Notifications</Text>
+                                <Text style={[styles.font11, { color: theme.textColor }]}>No categories available</Text>
                             )}
                         </ScrollView>
                     </View>
                 )}
             </View>
-
             {/* Mobile Left Menu Dropdown */}
             {isMobile && isMobileLeftMenuOpen && (
-                <View style={[styles.mobileLeftDropdown, { backgroundColor: theme.topBoxesBg }]}>
-                    <Text style={[styles.font11, styles.menuHeader, { color: theme.accentColor }]}>Navigation</Text>
-                    {navigationLinks.map((link, idx) => (
-                        <TouchableOpacity key={idx} style={styles.mobileMenuItem} onPress={() => setIsMobileLeftMenuOpen(false)}>
-                            <Text style={[styles.font11, { color: theme.textColor }]}>{link}</Text>
-                        </TouchableOpacity>
-                    ))}
+                <View style={[styles.mobileLeftDropdown, { backgroundColor: theme.cardBg }]}>
+                    <Text style={[styles.font11, styles.menuHeader, { color: theme.accentColor }]}>Modules:</Text>
+                    {loadingLeftMenu ? (
+                        <Text style={[styles.font11, { color: theme.textColor }]}>Loading modules...</Text>
+                    ) : leftMenuItems.length > 0 ? (
+                        leftMenuItems.map((link, idx) => {
+                            const linkId = link.id || link.pid || link.objectid || `left-item-${idx}`;
+                            const isSelected = selectedLeftId === linkId;
+                            return (
+                                <TouchableOpacity 
+                                    key={idx} 
+                                    style={[
+                                        styles.mobileMenuItem,
+                                        isSelected && { backgroundColor: theme.accentColor + '15', borderRadius: 4, paddingLeft: 6 }
+                                    ]} 
+                                    onPress={() => {
+                                        handleLeftMenuPress(link, idx);
+                                        setIsMobileLeftMenuOpen(false);
+                                    }}
+                                >
+                                    <Text style={[
+                                        styles.font11, 
+                                        { color: isSelected ? theme.accentColor : theme.textColor, fontWeight: isSelected ? '700' : '500' }
+                                    ]}>
+                                        {link.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })
+                    ) : (
+                        <Text style={[styles.font11, { color: theme.textColor }]}>No modules found</Text>
+                    )}
                 </View>
             )}
-
-            {/* ================= MAIN CONTAINER WITH COLLAPSE ICON ================= */}
+            {/* ================= MAIN CONTAINER (Sidebar + Workspace) ================= */}
             <View style={styles.mainWrapper}>
                 {!isMobile && (
                     <TouchableOpacity
                         style={[
                             styles.collapseIconContainer,
                             {
-                                backgroundColor: theme.topBoxesBg,
-                                left: isLeftMenuCollapsed ? 0 : 172
+                                backgroundColor: theme.cardBg,
+                                left: isLeftMenuCollapsed ? 0 : 182
                             }
                         ]}
                         onPress={() => setIsLeftMenuCollapsed(!isLeftMenuCollapsed)}
@@ -353,47 +565,70 @@ export default function CustomerPortal({
                         </Text>
                     </TouchableOpacity>
                 )}
-
-                {/* ================= MIDDLE SECTION (Left Menu + Content) ================= */}
                 <View style={styles.middleSection}>
                     {!isMobile && !isLeftMenuCollapsed && (
-                        <View style={[styles.leftMenuBox, { backgroundColor: theme.topBoxesBg, width: 180 }]}>
+                        <View style={[styles.leftMenuBox, { backgroundColor: theme.cardBg, width: 190 }]}>
                             <ScrollView contentContainerStyle={styles.menuScroll}>
-                                <Text style={[styles.font11, styles.menuHeader, { color: theme.accentColor }]}>Navigation</Text>
-                                {navigationLinks.map((link, idx) => (
-                                    <TouchableOpacity key={idx} style={styles.menuLink}>
-                                        <Text style={[styles.font11, { color: theme.textColor }]}>{link}</Text>
-                                    </TouchableOpacity>
-                                ))}
+                                <Text style={[styles.font11, styles.menuHeader, { color: theme.accentColor }]}>Modules</Text>
+                                {loadingLeftMenu ? (
+                                    <Text style={[styles.font11, { color: theme.textColor, opacity: 0.6 }]}>Loading modules...</Text>
+                                ) : leftMenuItems.length > 0 ? (
+                                    leftMenuItems.map((link, idx) => {
+                                        const linkId = link.id || link.pid || link.objectid || `left-item-${idx}`;
+                                        const isSelected = selectedLeftId === linkId;
+                                        return (
+                                            <TouchableOpacity 
+                                                key={idx} 
+                                                style={[
+                                                    styles.menuLink,
+                                                    isSelected && { backgroundColor: theme.accentColor + '15', paddingLeft: 8, borderRadius: 4 }
+                                                ]}
+                                                onPress={() => handleLeftMenuPress(link, idx)}
+                                            >
+                                                <Text style={[
+                                                    styles.font11, 
+                                                    { color: isSelected ? theme.accentColor : theme.textColor, fontWeight: isSelected ? '700' : '500' }
+                                                ]}>
+                                                    {link.label}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })
+                                ) : (
+                                    <Text style={[styles.font11, { color: theme.textColor, fontStyle: 'italic', opacity: 0.6 }]}>Select a category above</Text>
+                                )}
                             </ScrollView>
                         </View>
                     )}
-
-                    {/* Content Box */}
-                    <View style={[styles.contentBox, { backgroundColor: '#FFFFFF' }]}>
-                        <ScrollView contentContainerStyle={styles.contentScroll}>
-                            <Text style={[styles.font11, { color: '#1E293B', fontSize: 13, fontWeight: 'bold', marginBottom: 8 }]}>
-                                Content Box Workspace
-                            </Text>
-                            <Text style={[styles.font11, { color: '#475569', lineHeight: 16 }]}>
-                                Welcome to the Customer Portal for {subdomain}.{domain}. Top 3 menu loaded successfully with object ID 052adcee-50c0-4602-9fb7-43d080eae050 and domain header3.
-                            </Text>
-                        </ScrollView>
+                    {/* Content Box Workspace with responsive padding */}
+                    <View style={[styles.contentBox, { backgroundColor: theme.cardBg, padding: isMobile ? 2 : 7 }]}>
+                        {loadingContent ? (
+                            <View style={styles.loadingContainer}>
+                                <Text style={[styles.font11, { color: theme.textColor, opacity: 0.6, fontStyle: 'italic' }]}>Loading secure document stream...</Text>
+                            </View>
+                        ) : htmlContent ? (
+                            <iframe
+                                srcDoc={htmlContent}
+                                style={{ width: '100%', flex: 1, border: 'none', backgroundColor: 'transparent' }}
+                                title="HTML Content Preview"
+                            />
+                        ) : (
+                            <ScrollView contentContainerStyle={styles.contentScroll}></ScrollView>
+                        )}
                     </View>
                 </View>
             </View>
 
-            {/* ================= BOTTOM MENU BOX ================= */}
-            <View style={[styles.bottomMenuBox, { backgroundColor: '#FFFFFF' }]}>
-                <Text style={[styles.font11, { color: '#334155', textAlign: 'center' }]} numberOfLines={1}>
-                    Bottom Menu Box — Quick Links | Privacy | Terms
+            {/* ================= BOTTOM FOOTER BAR ================= */}
+            <View style={[styles.bottomMenuBox, { backgroundColor: theme.cardBg }]}>
+                <Text style={[styles.font11, { color: theme.textColor, opacity: 0.7, textAlign: 'center' }]} numberOfLines={1}>
+                    Quick Links | Privacy Policy | Terms of Service | Support Desk
                 </Text>
             </View>
 
-            {/* ================= BOTTOM BOX ================= */}
-            <View style={[styles.bottomBox, { backgroundColor: '#FFFFFF' }]}>
-                <Text style={[styles.font11, { color: '#334155', textAlign: 'center' }]} numberOfLines={1}>
-                    © 2026 {domain}. All rights reserved.
+            <View style={[styles.bottomBox, { backgroundColor: theme.cardBg }]}>
+                <Text style={[styles.font11, { color: theme.textColor, opacity: 0.6, textAlign: 'center' }]} numberOfLines={1}>
+                    © 2026 {domain}. All rights reserved. Powered by High-Performance Enterprise Solutions.
                 </Text>
             </View>
 
@@ -413,60 +648,59 @@ const styles = StyleSheet.create({
         fontFamily: 'System',
     },
     topBox1: {
-        height: 36,
+        height: 40,
         width: '100%',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 8,
+        paddingHorizontal: 12,
         borderWidth: 0,
-        borderBottomWidth: 0,
+        elevation: 1,
     },
     top1Left: {
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
-        overflow: 'hidden',
     },
     top1Right: {
         flexDirection: 'row',
         alignItems: 'center',
     },
+    themeSelectorContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginRight: 10,
+    },
     circle: {
         width: 14,
         height: 14,
         borderRadius: 7,
-        marginHorizontal: 2,
+        marginHorizontal: 3,
         borderWidth: 0,
     },
     dimensionWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginLeft: 6,
-        flex: 1,
-        overflow: 'hidden',
+        marginLeft: 4,
     },
     rotatingBox: {
-        width: 24,
+        width: 26,
         height: 18,
-        borderRadius: 4,
+        borderRadius: 5,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 1.5,
+        borderWidth: 0,
         elevation: 2,
     },
     rotatingBoxText: {
         color: '#FFFFFF',
         fontWeight: 'bold',
-        fontSize: 10,
+        fontSize: 9,
         textAlign: 'center',
     },
     menuItemInline: {
-        marginLeft: 10,
-        height: 11,
+        marginLeft: 14,
+        height: 14,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -476,41 +710,42 @@ const styles = StyleSheet.create({
         resizeMode: 'contain',
     },
     hamburgerButton: {
-        padding: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
+        borderWidth: 0,
     },
     mobileDropdown: {
         width: '100%',
-        paddingVertical: 6,
-        paddingHorizontal: 12,
+        paddingVertical: 8,
+        paddingHorizontal: 16,
         borderWidth: 0,
     },
     mobileLeftDropdown: {
         width: '100%',
-        paddingVertical: 8,
-        paddingHorizontal: 12,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
         borderWidth: 0,
     },
     mobileMenuItem: {
-        paddingVertical: 4,
+        paddingVertical: 6,
     },
     topBox2: {
-        height: 30,
+        height: 28,
         width: '100%',
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 10,
         borderWidth: 0,
-        borderBottomWidth: 0,
     },
     topBox3: {
-        height: 28,
+        height: 36,
         width: '100%',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 10,
         borderWidth: 0,
-        borderBottomWidth: 0,
     },
     top3MobileLeftContainer: {
         flex: 1,
@@ -519,7 +754,10 @@ const styles = StyleSheet.create({
     },
     leftMenuHamburger: {
         marginRight: 8,
-        padding: 2,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
+        borderWidth: 0,
     },
     topLeftBoxHeader: {
         flex: 1,
@@ -534,8 +772,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     top3MenuItem: {
-        marginHorizontal: 8,
-        paddingVertical: 2,
+        marginHorizontal: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 4,
+        borderWidth: 0,
     },
     mainWrapper: {
         flex: 1,
@@ -545,7 +786,7 @@ const styles = StyleSheet.create({
     },
     collapseIconContainer: {
         position: 'absolute',
-        top: 10,
+        top: 12,
         width: 20,
         height: 20,
         borderRadius: 4,
@@ -562,40 +803,63 @@ const styles = StyleSheet.create({
         borderWidth: 0,
     },
     leftMenuBox: {
-        paddingVertical: 8,
+        paddingVertical: 12,
         borderWidth: 0,
-        borderRightWidth: 0,
     },
     menuScroll: {
-        paddingHorizontal: 8,
+        paddingHorizontal: 10,
     },
     menuHeader: {
         fontWeight: 'bold',
-        marginBottom: 6,
+        marginBottom: 8,
+        textTransform: 'uppercase',
+        fontSize: 10,
+        letterSpacing: 0.5,
     },
     menuLink: {
-        paddingVertical: 6,
+        paddingVertical: 7,
+        paddingHorizontal: 6,
+        marginVertical: 1,
     },
     contentBox: {
         flex: 1,
         width: '100%',
-        padding: 12,
-        backgroundColor: '#FFFFFF',
+        borderRadius: 6,
         borderWidth: 0,
-        borderLeftWidth: 0,
+        margin: 6,
+        elevation: 1,
+        overflow: 'hidden',
+    },
+    workspaceHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+        paddingHorizontal: 10,
+        paddingTop: 10,
+    },
+    statusBadge: {
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
     },
     contentScroll: {
         flexGrow: 1,
+        padding: 10,
+    },
+    loadingContainer: {
+        flex: 1,
+        padding: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     bottomMenuBox: {
-        height: 28,
+        height: 30,
         width: '100%',
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 10,
-        backgroundColor: '#FFFFFF',
         borderWidth: 0,
-        borderTopWidth: 0,
     },
     bottomBox: {
         height: 28,
@@ -603,8 +867,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 10,
-        backgroundColor: '#FFFFFF',
         borderWidth: 0,
-        borderTopWidth: 0,
     },
 });

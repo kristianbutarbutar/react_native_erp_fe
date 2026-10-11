@@ -84,7 +84,6 @@ export const menuLoader = async (level: number, pid: string): Promise<MenuItem[]
   };
 
   try {
-    console.log("QUERY_OBJECT_ENDPOINT > ", QUERY_OBJECT_ENDPOINT);
 
     const response = await fetch(QUERY_OBJECT_ENDPOINT, {
       method: 'POST',

@@ -1,45 +1,54 @@
-import {DOMAIN_WEB} from '../global';
+// customer/ts/CustomerPortal.ts
+
+import { fetchHtmlStream } from './../panel/ts/HtmlPanel';
 
 // Define the input parameter type for loadMenu
 export interface LoadMenuParams {
   objectid: string;
-  domain: string;
-  sessionid: string;
+  whereClause: Array<{ col_name: string; value: string }>;
+  filterColumns: Array<string>;
+  sessionid?: string;
 }
-const DOMAIN_QUERY_OBJECT_ENDPOINT = `${DOMAIN_WEB}/api/query-object`;
+
+export interface ShowHtmlParams {
+  record?: Record<string, any>;
+  sessionId?: string;
+  [key: string]: any;
+}
+
+const DOMAIN_QUERY_OBJECT_ENDPOINT = '/api/query-object';
+
 /**
  * Loads the menu by calling the configurable query-object API.
  * 
- * @param params - Object containing objectid and domain
- * @param sessionid - Optional session ID for authorization
- * @param apiUrl - Configurable API endpoint (defaults to http://localhost:3000/api/query-object)
+ * @param params Object containing objectid, whereClause, filterColumns, and optional sessionid
+ * @param sessionid Optional session ID for authorization
+ * @param endpoint Configurable API endpoint (defaults to /api/query-object)
  * @returns The JSON response from the API
  */
 export const loadMenu = async (
   params: LoadMenuParams,
   sessionid?: string,
-  apiUrl: string = DOMAIN_QUERY_OBJECT_ENDPOINT,
+  endpoint: string = DOMAIN_QUERY_OBJECT_ENDPOINT,
 ) => {
   try {
-    const response = await fetch(apiUrl, {
+    const activeSessionId = sessionid || params.sessionid;
+
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(sessionid ? { 'Authorization': `Bearer ${sessionid}` } : {}),
+        ...(activeSessionId ? { 'Authorization': `Bearer ${activeSessionId}` } : {}),
       },
       body: JSON.stringify({
         objectid: params.objectid,
-        whereClause: [
-          {
-            col_name: 'domain',
-            value: params.domain,
-          },
-        ],
+        whereClause: params.whereClause,
+        filterColumns: params.filterColumns,
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
+      throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -49,3 +58,21 @@ export const loadMenu = async (
     throw error;
   }
 };
+
+/**
+ * Fetches HTML stream content by calling fetchHtmlStream from HtmlPanel.ts.
+ * 
+ * @param params Object containing record and sessionId
+ * @returns Promise resolving to the HTML file stream content.
+ */
+export async function showHtml(params: ShowHtmlParams): Promise<string | null> {
+  try {
+    console.log("showHtml > params > ", JSON.stringify(params));
+    const htmlStream = await fetchHtmlStream(params);
+    console.log("showHtml > response > ", htmlStream);
+    return htmlStream;
+  } catch (error) {
+    console.error('Error in showHtml:', error);
+    return null;
+  }
+}
