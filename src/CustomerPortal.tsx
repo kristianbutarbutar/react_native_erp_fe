@@ -10,8 +10,6 @@ import {
     Image,
     useWindowDimensions,
     Animated,
-    NativeSyntheticEvent,
-    NativeScrollEvent,
 } from 'react-native';
 import { loadMenu, showHtml } from './ts/CustomerPortal';
 
@@ -99,7 +97,7 @@ export default function CustomerPortal({
     const [htmlContent, setHtmlContent] = useState<string | null>(null);
     const [loadingContent, setLoadingContent] = useState<boolean>(false);
 
-    // Scroll visibility state for Top boxes
+    // Scroll visibility states for Top boxes (Top 1 stays visible, Top 2 & 3 collapse on scroll up)
     const [showTopBoxes, setShowTopBoxes] = useState<boolean>(true);
     const lastScrollY = useRef<number>(0);
 
@@ -272,18 +270,16 @@ export default function CustomerPortal({
         }
     };
 
-    // Scroll handler to detect scroll direction
-    const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    // Scroll handler: scrolling up (content moving down / positive delta) -> collapse Top 2 & 3. Scrolling down -> normalize.
+    const handleScroll = (event: any) => {
         const currentScrollY = event.nativeEvent.contentOffset.y;
         const diff = currentScrollY - lastScrollY.current;
 
         if (diff > 5 && currentScrollY > 20) {
-            // Scrolling down -> hide top boxes
             setShowTopBoxes(false);
             setIsMobileTopMenuOpen(false);
             setIsMobileLeftMenuOpen(false);
         } else if (diff < -5 || currentScrollY <= 10) {
-            // Scrolling up -> show top boxes
             setShowTopBoxes(true);
         }
         lastScrollY.current = currentScrollY;
@@ -359,79 +355,77 @@ export default function CustomerPortal({
     return (
         <View style={[styles.container, { backgroundColor: theme.topBoxesBg }]}>
 
-            {/* ================= TOP 1 BAR (Header & Brand) ================= */}
-            {showTopBoxes && (
-                <View style={[styles.topBox1, { backgroundColor: theme.cardBg }]}>
-                    <View style={styles.top1Left}>
-                        {!isMobile && (
-                            <View style={styles.themeSelectorContainer}>
-                                <TouchableOpacity
-                                    style={[styles.circle, { backgroundColor: '#ffb3b3', borderWidth: currentTheme === 'goldenYellow' ? 2 : 0, borderColor: '#D97706' }]}
-                                    onPress={() => setCurrentTheme('goldenYellow')}
-                                />
-                                <TouchableOpacity
-                                    style={[styles.circle, { backgroundColor: '#1E293B', borderWidth: currentTheme === 'comfortDark' ? 2 : 0, borderColor: '#3B82F6' }]}
-                                    onPress={() => setCurrentTheme('comfortDark')}
-                                />
-                                <TouchableOpacity
-                                    style={[styles.circle, { backgroundColor: '#0284C7', borderWidth: currentTheme === 'whiteBlue' ? 2 : 0, borderColor: '#E11D48' }]}
-                                    onPress={() => setCurrentTheme('whiteBlue')}
-                                />
-                            </View>
-                        )}
-
-                        {/* 4-Dimension Dynamic Box Badge */}
-                        <View style={styles.dimensionWrapper}>
-                            <Animated.View
-                                style={[
-                                    styles.rotatingBox,
-                                    {
-                                        backgroundColor: theme.accentColor,
-                                        opacity: opacityAnim,
-                                        transform: [{ translateY: translateAnim }]
-                                    }
-                                ]}
-                            >
-                                <Text style={[isMobile ? styles.font12 : styles.font11, styles.rotatingBoxText]}>
-                                    {currentCode}
-                                </Text>
-                            </Animated.View>
-                        </View>
-                    </View>
-
-                    {isMobile ? (
-                        <TouchableOpacity
-                            style={[styles.hamburgerButton, { backgroundColor: theme.accentColor + '15' }]}
-                            onPress={() => setIsMobileTopMenuOpen(!isMobileTopMenuOpen)}
-                        >
-                            <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.accentColor, fontWeight: 'bold' }]}>
-                                {isMobileTopMenuOpen ? '✕ Menu' : '☰ Menu'}
-                            </Text>
-                        </TouchableOpacity>
-                    ) : (
-                        <View style={styles.top1Right}>
-                            {topLeftMenu.map((item) => (
-                                <TouchableOpacity
-                                    key={item.id}
-                                    style={styles.menuItemInline}
-                                    onPress={() => handleMenuPress(item.id)}
-                                >
-                                    {item.type === 'image' ? (
-                                        <Image source={{ uri: item.uri }} style={styles.flagIcon} />
-                                    ) : (
-                                        <Text style={[styles.font11, { color: theme.textColor, fontWeight: '500' }]}>
-                                            {item.icon} {item.label}
-                                        </Text>
-                                    )}
-                                </TouchableOpacity>
-                            ))}
+            {/* ================= TOP 1 BAR (Header & Brand - Always Visible) ================= */}
+            <View style={[styles.topBox1, { backgroundColor: theme.cardBg }]}>
+                <View style={styles.top1Left}>
+                    {!isMobile && (
+                        <View style={styles.themeSelectorContainer}>
+                            <TouchableOpacity
+                                style={[styles.circle, { backgroundColor: '#ffb3b3', borderWidth: currentTheme === 'goldenYellow' ? 2 : 0, borderColor: '#D97706' }]}
+                                onPress={() => setCurrentTheme('goldenYellow')}
+                            />
+                            <TouchableOpacity
+                                style={[styles.circle, { backgroundColor: '#1E293B', borderWidth: currentTheme === 'comfortDark' ? 2 : 0, borderColor: '#3B82F6' }]}
+                                onPress={() => setCurrentTheme('comfortDark')}
+                            />
+                            <TouchableOpacity
+                                style={[styles.circle, { backgroundColor: '#0284C7', borderWidth: currentTheme === 'whiteBlue' ? 2 : 0, borderColor: '#E11D48' }]}
+                                onPress={() => setCurrentTheme('whiteBlue')}
+                            />
                         </View>
                     )}
+
+                    {/* 4-Dimension Dynamic Box Badge */}
+                    <View style={styles.dimensionWrapper}>
+                        <Animated.View
+                            style={[
+                                styles.rotatingBox,
+                                {
+                                    backgroundColor: theme.accentColor,
+                                    opacity: opacityAnim,
+                                    transform: [{ translateY: translateAnim }]
+                                }
+                            ]}
+                        >
+                            <Text style={[isMobile ? styles.font12 : styles.font11, styles.rotatingBoxText]}>
+                                {currentCode}
+                            </Text>
+                        </Animated.View>
+                    </View>
                 </View>
-            )}
+
+                {isMobile ? (
+                    <TouchableOpacity
+                        style={[styles.hamburgerButton, { backgroundColor: theme.accentColor + '15' }]}
+                        onPress={() => setIsMobileTopMenuOpen(!isMobileTopMenuOpen)}
+                    >
+                        <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.accentColor, fontWeight: 'bold' }]}>
+                            {isMobileTopMenuOpen ? '✕ Menu' : '☰ Menu'}
+                        </Text>
+                    </TouchableOpacity>
+                ) : (
+                    <View style={styles.top1Right}>
+                        {topLeftMenu.map((item) => (
+                            <TouchableOpacity
+                                key={item.id}
+                                style={styles.menuItemInline}
+                                onPress={() => handleMenuPress(item.id)}
+                            >
+                                {item.type === 'image' ? (
+                                    <Image source={{ uri: item.uri }} style={styles.flagIcon} />
+                                ) : (
+                                    <Text style={[styles.font11, { color: theme.textColor, fontWeight: '500' }]}>
+                                        {item.icon} {item.label}
+                                    </Text>
+                                )}
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
+            </View>
 
             {/* Mobile Dropdown Menu for Top 1 */}
-            {isMobile && isMobileTopMenuOpen && showTopBoxes && (
+            {isMobile && isMobileTopMenuOpen && (
                 <View style={[styles.mobileDropdown, { backgroundColor: theme.cardBg }]}>
                     {topLeftMenu.map((item) => (
                         <TouchableOpacity
@@ -454,7 +448,7 @@ export default function CustomerPortal({
                 </View>
             )}
 
-            {/* ================= TOP 2 BAR (Breadcrumbs & Sub-nav) ================= */}
+            {/* ================= TOP 2 BAR (Breadcrumbs & Sub-nav - Collapsible) ================= */}
             {showTopBoxes && (
                 <View style={[styles.topBox2, { backgroundColor: theme.topBoxesBg }]}>
                     <Text style={[styles.font12, { color: theme.textColor, opacity: 0.7, fontWeight: '500', textAlign: 'center' }]} numberOfLines={1}>
@@ -463,7 +457,7 @@ export default function CustomerPortal({
                 </View>
             )}
 
-            {/* ================= TOP 3 BAR (Main Category Tabs) ================= */}
+            {/* ================= TOP 3 BAR (Main Category Tabs - Collapsible) ================= */}
             {showTopBoxes && (
                 <View style={[styles.topBox3, { backgroundColor: theme.cardBg }]}>
                     {isMobile ? (
@@ -632,28 +626,34 @@ export default function CustomerPortal({
                             </ScrollView>
                         </View>
                     )}
-                    {/* Content Box Workspace with responsive padding & scroll detection */}
+                    {/* Content Box Workspace with responsive padding & iframe srcDoc isolation */}
                     <View style={[styles.contentBox, { backgroundColor: theme.cardBg, padding: isMobile ? 2 : 7 }]}>
                         {loadingContent ? (
                             <View style={styles.loadingContainer}>
                                 <Text style={[styles.font12, { color: theme.textColor, opacity: 0.6, fontStyle: 'italic' }]}>Loading secure document stream...</Text>
                             </View>
                         ) : htmlContent ? (
-                            <div
-                                onScroll={(e: any) => {
-                                    const currentScrollY = e.target.scrollTop;
-                                    const diff = currentScrollY - lastScrollY.current;
-                                    if (diff > 5 && currentScrollY > 20) {
-                                        setShowTopBoxes(false);
-                                        setIsMobileTopMenuOpen(false);
-                                        setIsMobileLeftMenuOpen(false);
-                                    } else if (diff < -5 || currentScrollY <= 10) {
-                                        setShowTopBoxes(true);
+                            <iframe
+                                srcDoc={htmlContent}
+                                onLoad={(e: any) => {
+                                    const iframeWindow = e.target.contentWindow;
+                                    if (iframeWindow) {
+                                        iframeWindow.addEventListener('scroll', (event: any) => {
+                                            const currentScrollY = iframeWindow.scrollY;
+                                            const diff = currentScrollY - lastScrollY.current;
+                                            if (diff > 5 && currentScrollY > 20) {
+                                                setShowTopBoxes(false);
+                                                setIsMobileTopMenuOpen(false);
+                                                setIsMobileLeftMenuOpen(false);
+                                            } else if (diff < -5 || currentScrollY <= 10) {
+                                                setShowTopBoxes(true);
+                                            }
+                                            lastScrollY.current = currentScrollY;
+                                        });
                                     }
-                                    lastScrollY.current = currentScrollY;
                                 }}
-                                style={{ width: '100%', height: '100%', overflowY: 'auto', border: 'none', backgroundColor: 'transparent' }}
-                                dangerouslySetInnerHTML={{ __html: htmlContent }}
+                                style={{ width: '100%', flex: 1, border: 'none', backgroundColor: 'transparent' }}
+                                title="HTML Content Preview"
                             />
                         ) : (
                             <ScrollView contentContainerStyle={styles.contentScroll} onScroll={handleScroll} scrollEventThrottle={16}></ScrollView>
