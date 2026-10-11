@@ -23,10 +23,10 @@ interface CustomerPortalProps {
 }
 
 export interface LoadMenuParams {
-  objectid: string;
-  whereClause: Array<{ col_name: string; value: string }>;
-  filterColumns: Array<string>;
-  sessionid: string;
+    objectid: string;
+    whereClause: Array<{ col_name: string; value: string }>;
+    filterColumns: Array<string>;
+    sessionid: string;
 }
 
 type ThemeMode = 'goldenYellow' | 'comfortDark' | 'whiteBlue';
@@ -44,7 +44,7 @@ const themes: Record<ThemeMode, ThemeConfig> = {
         name: 'goldenYellow',
         topBoxesBg: '#FFFFFF',
         textColor: '#5D4037',
-        accentColor: '#ffb3b3', // Updated to #ffb3b3
+        accentColor: '#ffb3b3',
         cardBg: '#FFFFFF',
     },
     comfortDark: {
@@ -115,7 +115,7 @@ export default function CustomerPortal({
             };
 
             const response = await loadMenu(params);
-            
+
             let menus: any[] = [];
             if (Array.isArray(response)) {
                 menus = response;
@@ -182,7 +182,7 @@ export default function CustomerPortal({
             setSelectedTop3Id(menuId);
             setSelectedLeftId(null);
             setLoadingLeftMenu(true);
-            
+
             const params: LoadMenuParams = {
                 objectid: '052adcee-50c0-4602-9fb7-43d080eae050',
                 whereClause: [{ col_name: 'pid', value: menuId }],
@@ -192,21 +192,26 @@ export default function CustomerPortal({
 
             const response = await loadMenu(params);
 
+            let leftMenus: any[] = [];
             if (Array.isArray(response)) {
-                setLeftMenuItems(response);
+                leftMenus = response;
             } else if (response && Array.isArray(response.data)) {
-                setLeftMenuItems(response.data);
+                leftMenus = response.data;
             } else if (response && Array.isArray(response.result)) {
-                setLeftMenuItems(response.result);
-            } else {
-                setLeftMenuItems([]);
+                leftMenus = response.result;
             }
+            setLeftMenuItems(leftMenus);
 
-            const targetPid = item.pid || item.id || item.objectid;
-            if (targetPid && String(targetPid).trim() !== '') {
+            // Automatically select the first left menu item if available and load its HTML content
+            if (leftMenus.length > 0) {
+                const firstLeftItem = leftMenus[0];
+                const firstLeftId = firstLeftItem.id || firstLeftItem.pid || firstLeftItem.objectid || 'left-item-0';
+                setSelectedLeftId(firstLeftId);
+
                 setLoadingContent(true);
+                const hasHtmlFile = firstLeftItem.html_file || firstLeftItem.record?.html_file;
                 const stream = await showHtml({
-                    record: item,
+                    record: hasHtmlFile ? firstLeftItem : { pid: firstLeftItem.pid || firstLeftItem.id || firstLeftItem.objectid },
                     sessionId: sessionid || '',
                 });
 
@@ -216,6 +221,22 @@ export default function CustomerPortal({
                     setHtmlContent(null);
                 }
                 setLoadingContent(false);
+            } else {
+                const targetPid = item.pid || item.id || item.objectid;
+                if (targetPid && String(targetPid).trim() !== '') {
+                    setLoadingContent(true);
+                    const stream = await showHtml({
+                        record: item,
+                        sessionId: sessionid || '',
+                    });
+
+                    if (stream) {
+                        setHtmlContent(stream);
+                    } else {
+                        setHtmlContent(null);
+                    }
+                    setLoadingContent(false);
+                }
             }
         } catch (error) {
             console.error('Failed in handleTop3MenuPress:', error);
@@ -248,7 +269,7 @@ export default function CustomerPortal({
             } else {
                 const stream = await showHtml({
                     record: { pid: linkItem.pid || linkItem.id || linkItem.objectid },
-                    sessionId: sessionid || 'sess_12345',
+                    sessionId: sessionid || '',
                 });
 
                 if (stream) {
@@ -367,7 +388,7 @@ export default function CustomerPortal({
                                 }
                             ]}
                         >
-                            <Text style={[styles.font11, styles.rotatingBoxText]}>
+                            <Text style={[isMobile ? styles.font12 : styles.font11, styles.rotatingBoxText]}>
                                 {currentCode}
                             </Text>
                         </Animated.View>
@@ -379,7 +400,7 @@ export default function CustomerPortal({
                         style={[styles.hamburgerButton, { backgroundColor: theme.accentColor + '15' }]}
                         onPress={() => setIsMobileTopMenuOpen(!isMobileTopMenuOpen)}
                     >
-                        <Text style={[styles.font11, { color: theme.accentColor, fontWeight: 'bold' }]}>
+                        <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.accentColor, fontWeight: 'bold' }]}>
                             {isMobileTopMenuOpen ? '✕ Menu' : '☰ Menu'}
                         </Text>
                     </TouchableOpacity>
@@ -416,10 +437,10 @@ export default function CustomerPortal({
                             {item.type === 'image' ? (
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                     <Image source={{ uri: item.uri }} style={styles.flagIcon} />
-                                    <Text style={[styles.font11, { color: theme.textColor, marginLeft: 6 }]}>Indonesia (ID)</Text>
+                                    <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.textColor, marginLeft: 6 }]}>Indonesia (ID)</Text>
                                 </View>
                             ) : (
-                                <Text style={[styles.font11, { color: theme.textColor, fontWeight: '500' }]}>
+                                <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.textColor, fontWeight: '500' }]}>
                                     {item.icon} {item.label}
                                 </Text>
                             )}
@@ -430,7 +451,7 @@ export default function CustomerPortal({
 
             {/* ================= TOP 2 BAR (Breadcrumbs & Sub-nav) ================= */}
             <View style={[styles.topBox2, { backgroundColor: theme.topBoxesBg }]}>
-                <Text style={[styles.font11, { color: theme.textColor, opacity: 0.7, fontWeight: '500', textAlign: 'center' }]} numberOfLines={1}>
+                <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.textColor, opacity: 0.7, fontWeight: '500', textAlign: 'center' }]} numberOfLines={1}>
                     Elevating Your Future • Solutions & Enterprise Gateway
                 </Text>
             </View>
@@ -444,7 +465,7 @@ export default function CustomerPortal({
                             onPress={() => setIsMobileLeftMenuOpen(!isMobileLeftMenuOpen)}
                         >
                             <Text style={[styles.font11, { color: theme.accentColor, fontWeight: 'bold' }]}>
-                                {isMobileLeftMenuOpen ? '✕ Nav' : '☰ Nav'}
+                                {isMobileLeftMenuOpen ? '✕ ' : '☰ '}
                             </Text>
                         </TouchableOpacity>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.top3MenuScroll}>
@@ -455,8 +476,8 @@ export default function CustomerPortal({
                                     const itemId = item.id || item.objectid || item.value || item.pid;
                                     const isSelected = selectedTop3Id === itemId;
                                     return (
-                                        <TouchableOpacity 
-                                            key={index} 
+                                        <TouchableOpacity
+                                            key={index}
                                             style={[
                                                 styles.top3MenuItem,
                                                 isSelected && { backgroundColor: theme.accentColor, borderRadius: 6 }
@@ -464,7 +485,7 @@ export default function CustomerPortal({
                                             onPress={() => handleTop3MenuPress(item)}
                                         >
                                             <Text style={[
-                                                styles.font11, 
+                                                styles.font11,
                                                 { color: isSelected ? '#FFFFFF' : theme.textColor, fontWeight: isSelected ? '700' : '500' }
                                             ]}>
                                                 {item.label}
@@ -487,8 +508,8 @@ export default function CustomerPortal({
                                     const itemId = item.id || item.objectid || item.value || item.pid;
                                     const isSelected = selectedTop3Id === itemId;
                                     return (
-                                        <TouchableOpacity 
-                                            key={index} 
+                                        <TouchableOpacity
+                                            key={index}
                                             style={[
                                                 styles.top3MenuItem,
                                                 isSelected && { backgroundColor: theme.accentColor, borderRadius: 6 }
@@ -496,7 +517,7 @@ export default function CustomerPortal({
                                             onPress={() => handleTop3MenuPress(item)}
                                         >
                                             <Text style={[
-                                                styles.font11, 
+                                                styles.font11,
                                                 { color: isSelected ? '#FFFFFF' : theme.textColor, fontWeight: isSelected ? '700' : '500' }
                                             ]}>
                                                 {item.label}
@@ -511,30 +532,31 @@ export default function CustomerPortal({
                     </View>
                 )}
             </View>
+
             {/* Mobile Left Menu Dropdown */}
             {isMobile && isMobileLeftMenuOpen && (
                 <View style={[styles.mobileLeftDropdown, { backgroundColor: theme.cardBg }]}>
-                    <Text style={[styles.font11, styles.menuHeader, { color: theme.accentColor }]}>Modules:</Text>
+                    <Text style={[isMobile ? styles.font12 : styles.font11, styles.menuHeader, { color: theme.accentColor }]}>Modules:</Text>
                     {loadingLeftMenu ? (
-                        <Text style={[styles.font11, { color: theme.textColor }]}>Loading modules...</Text>
+                        <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.textColor }]}>Loading modules...</Text>
                     ) : leftMenuItems.length > 0 ? (
                         leftMenuItems.map((link, idx) => {
                             const linkId = link.id || link.pid || link.objectid || `left-item-${idx}`;
                             const isSelected = selectedLeftId === linkId;
                             return (
-                                <TouchableOpacity 
-                                    key={idx} 
+                                <TouchableOpacity
+                                    key={idx}
                                     style={[
                                         styles.mobileMenuItem,
                                         isSelected && { backgroundColor: theme.accentColor + '15', borderRadius: 4, paddingLeft: 6 }
-                                    ]} 
+                                    ]}
                                     onPress={() => {
                                         handleLeftMenuPress(link, idx);
                                         setIsMobileLeftMenuOpen(false);
                                     }}
                                 >
                                     <Text style={[
-                                        styles.font11, 
+                                        isMobile ? styles.font12 : styles.font11,
                                         { color: isSelected ? theme.accentColor : theme.textColor, fontWeight: isSelected ? '700' : '500' }
                                     ]}>
                                         {link.label}
@@ -543,10 +565,11 @@ export default function CustomerPortal({
                             );
                         })
                     ) : (
-                        <Text style={[styles.font11, { color: theme.textColor }]}>No modules found</Text>
+                        <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.textColor }]}>No modules found</Text>
                     )}
                 </View>
             )}
+
             {/* ================= MAIN CONTAINER (Sidebar + Workspace) ================= */}
             <View style={styles.mainWrapper}>
                 {!isMobile && (
@@ -577,8 +600,8 @@ export default function CustomerPortal({
                                         const linkId = link.id || link.pid || link.objectid || `left-item-${idx}`;
                                         const isSelected = selectedLeftId === linkId;
                                         return (
-                                            <TouchableOpacity 
-                                                key={idx} 
+                                            <TouchableOpacity
+                                                key={idx}
                                                 style={[
                                                     styles.menuLink,
                                                     isSelected && { backgroundColor: theme.accentColor + '15', paddingLeft: 8, borderRadius: 4 }
@@ -586,7 +609,7 @@ export default function CustomerPortal({
                                                 onPress={() => handleLeftMenuPress(link, idx)}
                                             >
                                                 <Text style={[
-                                                    styles.font11, 
+                                                    styles.font11,
                                                     { color: isSelected ? theme.accentColor : theme.textColor, fontWeight: isSelected ? '700' : '500' }
                                                 ]}>
                                                     {link.label}
@@ -604,7 +627,7 @@ export default function CustomerPortal({
                     <View style={[styles.contentBox, { backgroundColor: theme.cardBg, padding: isMobile ? 2 : 7 }]}>
                         {loadingContent ? (
                             <View style={styles.loadingContainer}>
-                                <Text style={[styles.font11, { color: theme.textColor, opacity: 0.6, fontStyle: 'italic' }]}>Loading secure document stream...</Text>
+                                <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.textColor, opacity: 0.6, fontStyle: 'italic' }]}>Loading secure document stream...</Text>
                             </View>
                         ) : htmlContent ? (
                             <iframe
@@ -621,13 +644,13 @@ export default function CustomerPortal({
 
             {/* ================= BOTTOM FOOTER BAR ================= */}
             <View style={[styles.bottomMenuBox, { backgroundColor: theme.cardBg }]}>
-                <Text style={[styles.font11, { color: theme.textColor, opacity: 0.7, textAlign: 'center' }]} numberOfLines={1}>
+                <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.textColor, opacity: 0.7, textAlign: 'center' }]} numberOfLines={1}>
                     Quick Links | Privacy Policy | Terms of Service | Support Desk
                 </Text>
             </View>
 
             <View style={[styles.bottomBox, { backgroundColor: theme.cardBg }]}>
-                <Text style={[styles.font11, { color: theme.textColor, opacity: 0.6, textAlign: 'center' }]} numberOfLines={1}>
+                <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.textColor, opacity: 0.6, textAlign: 'center' }]} numberOfLines={1}>
                     © 2026 {domain}. All rights reserved. Powered by High-Performance Enterprise Solutions.
                 </Text>
             </View>
@@ -645,6 +668,10 @@ const styles = StyleSheet.create({
     },
     font11: {
         fontSize: 11,
+        fontFamily: 'System',
+    },
+    font12: {
+        fontSize: 12,
         fontFamily: 'System',
     },
     topBox1: {

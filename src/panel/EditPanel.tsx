@@ -1,3 +1,4 @@
+// EditPanel.tsx
 'use client';
 
 import React, { useEffect, useState, createElement } from 'react';
@@ -383,9 +384,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
 
   const handleOpenHtmlEditor = async (colName: string) => {
     setActiveHtmlColName(colName);
-    
-    console.log("handleOpenHtmlEditor > colName = ", colName);
-    
+
     const rawValue = formData[colName.toLowerCase()];
 
     if (rawValue !== undefined && rawValue !== null && String(rawValue).trim() !== '') {
@@ -401,12 +400,8 @@ export const EditPanel: React.FC<EditPanelProps> = ({
             },
           ],
         };
-        console.log("handleOpenHtmlEditor payload > ", JSON.stringify(__payload));
 
         const recordResult = await viewObjectItem(__payload);
-        
-        console.log("handleOpenHtmlEditor result > ", JSON.stringify(recordResult))
-
         const __record = recordResult?.data?.data?.[0] || null;
 
         setHtmlRecordData(__record);
@@ -473,10 +468,6 @@ export const EditPanel: React.FC<EditPanelProps> = ({
     return val;
   };
 
-  const runReloadProp = () => {
-        handleParentFunction?.();
-        console.log("runReloadProp");
-  }
   const handleSaveRecord = async () => {
     if (!tableName || !recordid) return;
 
@@ -546,11 +537,9 @@ export const EditPanel: React.FC<EditPanelProps> = ({
       const result = await updateObject(payload);
 
       if (result && result.success) {
-
         if (typeof handleParentFunction === 'function') handleParentFunction();
         if (typeof onSuccess === 'function') onSuccess();
         if (typeof onClose === 'function') onClose();
-        
       } else {
         setErrorMessage(result?.error || 'Failed to update record.');
       }
@@ -586,10 +575,10 @@ export const EditPanel: React.FC<EditPanelProps> = ({
     if (isIdField) {
       return (
         <View style={[styles.fieldInnerContainer, isDesktop && styles.desktopCompactFieldInner]}>
-          <Text style={[styles.fieldLabel, isDesktop && styles.desktopCompactFieldLabel]}>
+          <Text style={[styles.fieldLabel, isDesktop && styles.desktopCompactFieldLabel, !isDesktop && { fontSize: 12 }]}>
             {col.label ? col.label.toUpperCase() : ''} (ID - ReadOnly)
           </Text>
-          <Text style={[styles.valueText, styles.readOnlyText, isDesktop && styles.desktopCompactValue]}>
+          <Text style={[styles.valueText, styles.readOnlyText, isDesktop && styles.desktopCompactValue, !isDesktop && { fontSize: 12 }]}>
             {String(rawValue)}
           </Text>
         </View>
@@ -598,24 +587,36 @@ export const EditPanel: React.FC<EditPanelProps> = ({
 
     return (
       <View style={[styles.fieldInnerContainer, isDesktop && styles.desktopCompactFieldInner]}>
-        <Text style={[styles.fieldLabel, isDesktop && styles.desktopCompactFieldLabel]}>
+        <Text style={[styles.fieldLabel, isDesktop && styles.desktopCompactFieldLabel, !isDesktop && { fontSize: 12 }]}>
           {col.label ? col.label.toUpperCase() : ''}
         </Text>
         {isHtmlField ? (
           <View style={styles.fileFieldContainer}>
             <TextInput
-              style={[styles.textInput, isDesktop && styles.desktopCompactInput, styles.disabledField]}
+              style={[
+                styles.textInput,
+                isDesktop && styles.desktopCompactInput,
+                styles.disabledField,
+                { flex: 1, marginTop: 0 },
+                !isDesktop && { height: 24, fontSize: COMPACT_FONT_SIZE },
+                isDesktop && isMaximized && { height: 20 },
+              ]}
               value={String(rawValue)}
               editable={false}
               placeholder="HTML content managed via editor..."
             />
             {!isDisabled && (
               <TouchableOpacity
-                style={styles.htmlEditorBtn}
+                style={[
+                  styles.htmlEditorBtn,
+                  isDesktop && styles.desktopCompactFileActionBtn,
+                  !isDesktop && { height: 24, paddingHorizontal: 8 },
+                  isDesktop && isMaximized && { height: 20 },
+                ]}
                 onPress={() => handleOpenHtmlEditor(col.col_name)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.htmlEditorBtnText}>Html Editor</Text>
+                <Text style={[styles.htmlEditorBtnText, isDesktop && styles.desktopCompactBtnText, !isDesktop && { fontSize: 11 }]}>Html Editor</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -623,7 +624,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
           <View style={styles.fileFieldContainerCol}>
             <View style={styles.fileInputRow}>
               <TextInput
-                style={[styles.textInput, isDesktop && styles.desktopCompactInput, isDisabled && styles.disabledField, { flex: 1, marginTop: 0 }]}
+                style={[styles.textInput, isDesktop && styles.desktopCompactInput, isDisabled && styles.disabledField, { flex: 1, marginTop: 0 }, !isDesktop && { fontSize: 12, height: 40 }]}
                 value={typeof rawValue === 'string' ? rawValue : Array.isArray(rawValue) ? rawValue.map((f: any) => f.name).join(', ') : ''}
                 onChangeText={(text) => !isDisabled && handleFieldChange(col.col_name, text)}
                 placeholder="Enter file value or path..."
@@ -631,23 +632,23 @@ export const EditPanel: React.FC<EditPanelProps> = ({
               />
               {!isDisabled && (
                 <TouchableOpacity
-                  style={[styles.fileActionBtn, isDesktop && styles.desktopCompactFileActionBtn]}
+                  style={[styles.fileActionBtn, isDesktop && styles.desktopCompactFileActionBtn, !isDesktop && { height: 40, paddingHorizontal: 10 }]}
                   onPress={() => handlePickFiles(col)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.fileActionBtnText, isDesktop && styles.desktopCompactBtnText]}>Upload</Text>
+                  <Text style={[styles.fileActionBtnText, isDesktop && styles.desktopCompactBtnText, !isDesktop && { fontSize: 12 }]}>Upload</Text>
                 </TouchableOpacity>
               )}
               {!isDisabled && (
                 <TouchableOpacity
-                  style={[styles.fileActionBtn, isDesktop && styles.desktopCompactFileActionBtn]}
+                  style={[styles.fileActionBtn, isDesktop && styles.desktopCompactFileActionBtn, !isDesktop && { height: 40, paddingHorizontal: 10 }]}
                   onPress={() => {
                     setSelectedFileValue(rawValue);
                     setShowFilesExplorer(true);
                   }}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.fileActionBtnText, isDesktop && styles.desktopCompactBtnText]}>File</Text>
+                  <Text style={[styles.fileActionBtnText, isDesktop && styles.desktopCompactBtnText, !isDesktop && { fontSize: 12 }]}>File</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -655,7 +656,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
               <View style={styles.fileChipContainer}>
                 {rawValue.map((fileItem: any, fIdx: number) => (
                   <View key={`file-${fIdx}`} style={styles.fileChip}>
-                    <Text style={styles.fileChipText} numberOfLines={1}>{fileItem.name || String(fileItem)}</Text>
+                    <Text style={[styles.fileChipText, !isDesktop && { fontSize: 11 }]} numberOfLines={1}>{fileItem.name || String(fileItem)}</Text>
                     {!isDisabled && (
                       <TouchableOpacity onPress={() => handleRemoveFile(col.col_name, fIdx)}>
                         <CloseIcon color="#DC2626" size={10} />
@@ -668,7 +669,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
           </View>
         ) : isIconField ? (
           <TouchableOpacity
-            style={[styles.iconTriggerBox, isDesktop && styles.desktopCompactIconTrigger, isDisabled && styles.disabledField]}
+            style={[styles.iconTriggerBox, isDesktop && styles.desktopCompactIconTrigger, isDisabled && styles.disabledField, !isDesktop && { height: 44 }]}
             onPress={() => !isDisabled && handleOpenIconModal(col.col_name)}
             activeOpacity={isDisabled ? 1 : 0.7}
           >
@@ -676,11 +677,11 @@ export const EditPanel: React.FC<EditPanelProps> = ({
               {rawValue ? (
                 createElement(FontAwesomeIcon, { color: isDisabled ? '#94A3B8' : 'black', name: String(rawValue), size: 24 })
               ) : (
-                <Text style={styles.iconPlaceholderText}>Select Icon...</Text>
+                <Text style={[styles.iconPlaceholderText, !isDesktop && { fontSize: 12 }]}>Select Icon...</Text>
               )}
-              <Text style={[styles.iconValueText, isDisabled && styles.disabledText]}>{rawValue ? String(rawValue) : 'No icon selected'}</Text>
+              <Text style={[styles.iconValueText, isDisabled && styles.disabledText, !isDesktop && { fontSize: 12 }]}>{rawValue ? String(rawValue) : 'No icon selected'}</Text>
             </View>
-            {!isDisabled && <Text style={styles.iconSelectAction}>Browse ▾</Text>}
+            {!isDisabled && <Text style={[styles.iconSelectAction, !isDesktop && { fontSize: 12 }]}>Browse ▾</Text>}
           </TouchableOpacity>
         ) : isDateOrTimestamp ? (
           <DatePickerInput
@@ -691,7 +692,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
           />
         ) : isMoneyType ? (
           <TextInput
-            style={[styles.textInput, isDesktop && styles.desktopCompactInput, isDisabled && styles.disabledField]}
+            style={[styles.textInput, isDesktop && styles.desktopCompactInput, isDisabled && styles.disabledField, !isDesktop && { fontSize: 12, height: 40 }]}
             value={String(rawValue)}
             onChangeText={(text) => !isDisabled && handleFieldChange(col.col_name, text)}
             placeholder="0.00"
@@ -701,7 +702,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
           />
         ) : (
           <TextInput
-            style={[styles.textInput, isDesktop && styles.desktopCompactInput, isDisabled && styles.disabledField]}
+            style={[styles.textInput, isDesktop && styles.desktopCompactInput, isDisabled && styles.disabledField, !isDesktop && { fontSize: 12, height: 40 }]}
             value={String(rawValue)}
             onChangeText={(text) => !isDisabled && handleFieldChange(col.col_name, text)}
             placeholder={`Enter ${col.label || col.col_name}...`}
@@ -749,15 +750,17 @@ export const EditPanel: React.FC<EditPanelProps> = ({
         {/* ROW 1: HEADER */}
         <View style={[styles.topMenuRow, isDesktop && styles.desktopCompactTopMenu]}>
           <View style={styles.headerLeftGroup}>
-            <TouchableOpacity
-              style={[styles.maximizeButton, isDesktop && styles.desktopCompactMaximize]}
-              onPress={() => setIsMaximized(!isMaximized)}
-              accessibilityLabel={isMaximized ? 'Minimize Panel' : 'Maximize Panel'}
-              title={isMaximized ? 'Restore Viewport' : 'Maximize Viewport'}
-            >
-              {isMaximized ? <MinimizeIcon color="#475569" size={10} /> : <MaximizeIcon color="#475569" size={10} />}
-            </TouchableOpacity>
-            <Text style={[styles.titleText, isDesktop && styles.desktopCompactTitle]}>{objectLabel}</Text>
+            {isDesktop && (
+              <TouchableOpacity
+                style={[styles.maximizeButton, isDesktop && styles.desktopCompactMaximize]}
+                onPress={() => setIsMaximized(!isMaximized)}
+                accessibilityLabel={isMaximized ? 'Minimize Panel' : 'Maximize Panel'}
+                title={isMaximized ? 'Restore Viewport' : 'Maximize Viewport'}
+              >
+                {isMaximized ? <MinimizeIcon color="#475569" size={10} /> : <MaximizeIcon color="#475569" size={10} />}
+              </TouchableOpacity>
+            )}
+            <Text style={[styles.titleText, isDesktop && styles.desktopCompactTitle, !isDesktop && { fontSize: 15 }]}>{objectLabel}</Text>
           </View>
 
           <TouchableOpacity
@@ -782,12 +785,12 @@ export const EditPanel: React.FC<EditPanelProps> = ({
               contentContainerStyle={[styles.formScrollContent, isDesktop && styles.desktopCompactScrollContent]}
               showsVerticalScrollIndicator={true}
             >
-              <View style={[styles.formCardContainer, isDesktop && styles.desktopCompactCardContainer]}>
+              <View style={[styles.formCardContainer, isDesktop && styles.desktopCompactCardContainer, !isDesktop && { width: '100%', maxWidth: '100%', borderWidth: 0, padding: 12, borderRadius: 0, boxShadow: 'none' }]}>
                 {/* RECORD FORM HEADER */}
                 <View style={[styles.formHeaderRow, isDesktop && styles.desktopCompactHeaderRow]}>
                   <View style={styles.summaryTitleWrapper}>
-                    <Text style={[styles.formTitle, isDesktop && styles.desktopCompactFormTitle]}>Edit Record Details</Text>
-                    <Text style={[styles.formSubtitle, isDesktop && styles.desktopCompactFormSubtitle]}>
+                    <Text style={[styles.formTitle, isDesktop && styles.desktopCompactFormTitle, !isDesktop && { fontSize: 14 }]}>Edit Record Details</Text>
+                    <Text style={[styles.formSubtitle, isDesktop && styles.desktopCompactFormSubtitle, !isDesktop && { fontSize: 11 }]}>
                       Table: {objectLabel} | Record ID: {recordid}
                     </Text>
                   </View>
@@ -830,7 +833,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
 
                 {/* DYNAMIC FORM FIELDS */}
                 <View style={[styles.formGrid, isDesktop && { margin: COMPACT_MARGIN, padding: COMPACT_PADDING }]}>
-                  {columnLayout === 1 ? (
+                  {columnLayout === 1 || !isDesktop ? (
                     columns.map((col) => (
                       <View key={col.col_name} style={[styles.fieldRowSingle, isDesktop && styles.desktopCompactFieldRowSingle]}>
                         {renderFieldInput(col)}
@@ -855,17 +858,17 @@ export const EditPanel: React.FC<EditPanelProps> = ({
         </View>
 
         {/* ROW 3: ACTION BAR */}
-        <View style={[styles.actionRow, isDesktop && styles.desktopCompactActionRow]}>
+        <View style={[styles.actionRow, isDesktop && styles.desktopCompactActionRow, !isDesktop && { paddingHorizontal: 12, paddingVertical: 10 }]}>
           <TouchableOpacity
-            style={[styles.cancelButton, isDesktop && styles.desktopCompactCancelBtn]}
+            style={[styles.cancelButton, isDesktop && styles.desktopCompactCancelBtn, !isDesktop && { paddingHorizontal: 16, paddingVertical: 10 }]}
             onPress={onClose}
             activeOpacity={0.8}
           >
-            <Text style={[styles.cancelButtonText, isDesktop && styles.desktopCompactBtnText]}>Cancel</Text>
+            <Text style={[styles.cancelButtonText, isDesktop && styles.desktopCompactBtnText, !isDesktop && { fontSize: 13 }]}>Cancel</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.saveButton, isDesktop && styles.desktopCompactSaveBtn]}
+            style={[styles.saveButton, isDesktop && styles.desktopCompactSaveBtn, !isDesktop && { paddingHorizontal: 20, paddingVertical: 10 }]}
             onPress={handleSaveRecord}
             disabled={saving}
             activeOpacity={0.8}
@@ -875,7 +878,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
             ) : (
               <>
                 <SaveIcon color="#FFFFFF" size={isDesktop ? 11 : 13} />
-                <Text style={[styles.saveButtonText, isDesktop && styles.desktopCompactBtnText]}>Save Changes</Text>
+                <Text style={[styles.saveButtonText, isDesktop && styles.desktopCompactBtnText, !isDesktop && { fontSize: 13 }]}>Save Changes</Text>
               </>
             )}
           </TouchableOpacity>
@@ -883,7 +886,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
 
         {/* ROW 4: FOOTER */}
         <View style={[styles.footerRow, isDesktop && styles.desktopCompactFooter]}>
-          <Text style={[styles.subtleText, isDesktop && styles.desktopCompactSubtleText]}>
+          <Text style={[styles.subtleText, isDesktop && styles.desktopCompactSubtleText, !isDesktop && { fontSize: 11 }]}>
             Editing Table: {objectLabel || 'N/A'} | Record ID: {recordid || 'N/A'}
           </Text>
         </View>
@@ -1403,7 +1406,7 @@ const styles = StyleSheet.create({
   },
   htmlEditorBtn: {
     paddingHorizontal: 12,
-    height: 31,
+    height: 38,
     backgroundColor: '#4F46E5',
     borderRadius: 6,
     alignItems: 'center',
