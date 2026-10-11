@@ -1,6 +1,6 @@
 // customer/CustomerPortal.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     StyleSheet,
     Text,
@@ -10,6 +10,8 @@ import {
     Image,
     useWindowDimensions,
     Animated,
+    NativeSyntheticEvent,
+    NativeScrollEvent,
 } from 'react-native';
 import { loadMenu, showHtml } from './ts/CustomerPortal';
 
@@ -97,6 +99,10 @@ export default function CustomerPortal({
     const [htmlContent, setHtmlContent] = useState<string | null>(null);
     const [loadingContent, setLoadingContent] = useState<boolean>(false);
 
+    // Scroll visibility state for Top boxes
+    const [showTopBoxes, setShowTopBoxes] = useState<boolean>(true);
+    const lastScrollY = useRef<number>(0);
+
     // Animation values for rotating box effect
     const [translateAnim] = useState(new Animated.Value(0));
     const [opacityAnim] = useState(new Animated.Value(1));
@@ -180,7 +186,7 @@ export default function CustomerPortal({
         try {
             const menuId = item.id || item.objectid || item.value || item.pid;
             setSelectedTop3Id(menuId);
-            setSelectedLeftId(null); // Ensure no left menu item is selected
+            setSelectedLeftId(null);
             setLoadingLeftMenu(true);
 
             const params: LoadMenuParams = {
@@ -203,7 +209,6 @@ export default function CustomerPortal({
             setLeftMenuItems(leftMenus);
             setLoadingLeftMenu(false);
 
-            // Load the clicked Top 3 item's HTML content without auto-selecting any left menu items
             const targetPid = item.pid || item.id || item.objectid;
             if (targetPid && String(targetPid).trim() !== '') {
                 setLoadingContent(true);
@@ -265,6 +270,23 @@ export default function CustomerPortal({
         } finally {
             setLoadingContent(false);
         }
+    };
+
+    // Scroll handler to detect scroll direction
+    const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        const currentScrollY = event.nativeEvent.contentOffset.y;
+        const diff = currentScrollY - lastScrollY.current;
+
+        if (diff > 5 && currentScrollY > 20) {
+            // Scrolling down -> hide top boxes
+            setShowTopBoxes(false);
+            setIsMobileTopMenuOpen(false);
+            setIsMobileLeftMenuOpen(false);
+        } else if (diff < -5 || currentScrollY <= 10) {
+            // Scrolling up -> show top boxes
+            setShowTopBoxes(true);
+        }
+        lastScrollY.current = currentScrollY;
     };
 
     // Trigger onload handler on mount & fetch initial content if recordid is present
@@ -338,76 +360,78 @@ export default function CustomerPortal({
         <View style={[styles.container, { backgroundColor: theme.topBoxesBg }]}>
 
             {/* ================= TOP 1 BAR (Header & Brand) ================= */}
-            <View style={[styles.topBox1, { backgroundColor: theme.cardBg }]}>
-                <View style={styles.top1Left}>
-                    {!isMobile && (
-                        <View style={styles.themeSelectorContainer}>
-                            <TouchableOpacity
-                                style={[styles.circle, { backgroundColor: '#ffb3b3', borderWidth: currentTheme === 'goldenYellow' ? 2 : 0, borderColor: '#D97706' }]}
-                                onPress={() => setCurrentTheme('goldenYellow')}
-                            />
-                            <TouchableOpacity
-                                style={[styles.circle, { backgroundColor: '#1E293B', borderWidth: currentTheme === 'comfortDark' ? 2 : 0, borderColor: '#3B82F6' }]}
-                                onPress={() => setCurrentTheme('comfortDark')}
-                            />
-                            <TouchableOpacity
-                                style={[styles.circle, { backgroundColor: '#0284C7', borderWidth: currentTheme === 'whiteBlue' ? 2 : 0, borderColor: '#E11D48' }]}
-                                onPress={() => setCurrentTheme('whiteBlue')}
-                            />
+            {showTopBoxes && (
+                <View style={[styles.topBox1, { backgroundColor: theme.cardBg }]}>
+                    <View style={styles.top1Left}>
+                        {!isMobile && (
+                            <View style={styles.themeSelectorContainer}>
+                                <TouchableOpacity
+                                    style={[styles.circle, { backgroundColor: '#ffb3b3', borderWidth: currentTheme === 'goldenYellow' ? 2 : 0, borderColor: '#D97706' }]}
+                                    onPress={() => setCurrentTheme('goldenYellow')}
+                                />
+                                <TouchableOpacity
+                                    style={[styles.circle, { backgroundColor: '#1E293B', borderWidth: currentTheme === 'comfortDark' ? 2 : 0, borderColor: '#3B82F6' }]}
+                                    onPress={() => setCurrentTheme('comfortDark')}
+                                />
+                                <TouchableOpacity
+                                    style={[styles.circle, { backgroundColor: '#0284C7', borderWidth: currentTheme === 'whiteBlue' ? 2 : 0, borderColor: '#E11D48' }]}
+                                    onPress={() => setCurrentTheme('whiteBlue')}
+                                />
+                            </View>
+                        )}
+
+                        {/* 4-Dimension Dynamic Box Badge */}
+                        <View style={styles.dimensionWrapper}>
+                            <Animated.View
+                                style={[
+                                    styles.rotatingBox,
+                                    {
+                                        backgroundColor: theme.accentColor,
+                                        opacity: opacityAnim,
+                                        transform: [{ translateY: translateAnim }]
+                                    }
+                                ]}
+                            >
+                                <Text style={[isMobile ? styles.font12 : styles.font11, styles.rotatingBoxText]}>
+                                    {currentCode}
+                                </Text>
+                            </Animated.View>
+                        </View>
+                    </View>
+
+                    {isMobile ? (
+                        <TouchableOpacity
+                            style={[styles.hamburgerButton, { backgroundColor: theme.accentColor + '15' }]}
+                            onPress={() => setIsMobileTopMenuOpen(!isMobileTopMenuOpen)}
+                        >
+                            <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.accentColor, fontWeight: 'bold' }]}>
+                                {isMobileTopMenuOpen ? '✕ Menu' : '☰ Menu'}
+                            </Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <View style={styles.top1Right}>
+                            {topLeftMenu.map((item) => (
+                                <TouchableOpacity
+                                    key={item.id}
+                                    style={styles.menuItemInline}
+                                    onPress={() => handleMenuPress(item.id)}
+                                >
+                                    {item.type === 'image' ? (
+                                        <Image source={{ uri: item.uri }} style={styles.flagIcon} />
+                                    ) : (
+                                        <Text style={[styles.font11, { color: theme.textColor, fontWeight: '500' }]}>
+                                            {item.icon} {item.label}
+                                        </Text>
+                                    )}
+                                </TouchableOpacity>
+                            ))}
                         </View>
                     )}
-
-                    {/* 4-Dimension Dynamic Box Badge */}
-                    <View style={styles.dimensionWrapper}>
-                        <Animated.View
-                            style={[
-                                styles.rotatingBox,
-                                {
-                                    backgroundColor: theme.accentColor,
-                                    opacity: opacityAnim,
-                                    transform: [{ translateY: translateAnim }]
-                                }
-                            ]}
-                        >
-                            <Text style={[isMobile ? styles.font12 : styles.font11, styles.rotatingBoxText]}>
-                                {currentCode}
-                            </Text>
-                        </Animated.View>
-                    </View>
                 </View>
-
-                {isMobile ? (
-                    <TouchableOpacity
-                        style={[styles.hamburgerButton, { backgroundColor: theme.accentColor + '15' }]}
-                        onPress={() => setIsMobileTopMenuOpen(!isMobileTopMenuOpen)}
-                    >
-                        <Text style={[isMobile ? styles.font12 : styles.font11, { color: theme.accentColor, fontWeight: 'bold' }]}>
-                            {isMobileTopMenuOpen ? '✕ Menu' : '☰ Menu'}
-                        </Text>
-                    </TouchableOpacity>
-                ) : (
-                    <View style={styles.top1Right}>
-                        {topLeftMenu.map((item) => (
-                            <TouchableOpacity
-                                key={item.id}
-                                style={styles.menuItemInline}
-                                onPress={() => handleMenuPress(item.id)}
-                            >
-                                {item.type === 'image' ? (
-                                    <Image source={{ uri: item.uri }} style={styles.flagIcon} />
-                                ) : (
-                                    <Text style={[styles.font11, { color: theme.textColor, fontWeight: '500' }]}>
-                                        {item.icon} {item.label}
-                                    </Text>
-                                )}
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                )}
-            </View>
+            )}
 
             {/* Mobile Dropdown Menu for Top 1 */}
-            {isMobile && isMobileTopMenuOpen && (
+            {isMobile && isMobileTopMenuOpen && showTopBoxes && (
                 <View style={[styles.mobileDropdown, { backgroundColor: theme.cardBg }]}>
                     {topLeftMenu.map((item) => (
                         <TouchableOpacity
@@ -431,91 +455,95 @@ export default function CustomerPortal({
             )}
 
             {/* ================= TOP 2 BAR (Breadcrumbs & Sub-nav) ================= */}
-            <View style={[styles.topBox2, { backgroundColor: theme.topBoxesBg }]}>
-                <Text style={[styles.font12, { color: theme.textColor, opacity: 0.7, fontWeight: '500', textAlign: 'center' }]} numberOfLines={1}>
-                    Elevating Your Future • Solutions & Enterprise Gateway
-                </Text>
-            </View>
+            {showTopBoxes && (
+                <View style={[styles.topBox2, { backgroundColor: theme.topBoxesBg }]}>
+                    <Text style={[styles.font12, { color: theme.textColor, opacity: 0.7, fontWeight: '500', textAlign: 'center' }]} numberOfLines={1}>
+                        Elevating Your Future • Solutions & Enterprise Gateway
+                    </Text>
+                </View>
+            )}
 
             {/* ================= TOP 3 BAR (Main Category Tabs) ================= */}
-            <View style={[styles.topBox3, { backgroundColor: theme.cardBg }]}>
-                {isMobile ? (
-                    <View style={styles.top3MobileLeftContainer}>
-                        <TouchableOpacity
-                            style={[styles.leftMenuHamburger, { backgroundColor: theme.accentColor + '15' }]}
-                            onPress={() => setIsMobileLeftMenuOpen(!isMobileLeftMenuOpen)}
-                        >
-                            <Text style={[styles.font12, { color: theme.accentColor, fontWeight: 'bold' }]}>
-                                {isMobileLeftMenuOpen ? '✕ ' : '☰ '}
-                            </Text>
-                        </TouchableOpacity>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.top3MenuScroll}>
-                            {loadingTop3 ? (
-                                <Text style={[styles.font12, { color: theme.textColor }]}>Loading categories...</Text>
-                            ) : top3MenuItems.length > 0 ? (
-                                top3MenuItems.map((item, index) => {
-                                    const itemId = item.id || item.objectid || item.value || item.pid;
-                                    const isSelected = selectedTop3Id === itemId;
-                                    return (
-                                        <TouchableOpacity
-                                            key={index}
-                                            style={[
-                                                styles.top3MenuItem,
-                                                isSelected && { backgroundColor: theme.accentColor, borderRadius: 6 }
-                                            ]}
-                                            onPress={() => handleTop3MenuPress(item)}
-                                        >
-                                            <Text style={[
-                                                styles.font12,
-                                                { color: isSelected ? '#FFFFFF' : theme.textColor, fontWeight: isSelected ? '700' : '500' }
-                                            ]}>
-                                                {item.label}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    );
-                                })
-                            ) : (
-                                <Text style={[styles.font12, { color: theme.textColor }]}>No categories available</Text>
-                            )}
-                        </ScrollView>
-                    </View>
-                ) : (
-                    <View style={styles.topLeftBoxHeader}>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.top3MenuScrollCenter}>
-                            {loadingTop3 ? (
-                                <Text style={[styles.font11, { color: theme.textColor }]}>Loading categories...</Text>
-                            ) : top3MenuItems.length > 0 ? (
-                                top3MenuItems.map((item, index) => {
-                                    const itemId = item.id || item.objectid || item.value || item.pid;
-                                    const isSelected = selectedTop3Id === itemId;
-                                    return (
-                                        <TouchableOpacity
-                                            key={index}
-                                            style={[
-                                                styles.top3MenuItem,
-                                                isSelected && { backgroundColor: theme.accentColor, borderRadius: 6 }
-                                            ]}
-                                            onPress={() => handleTop3MenuPress(item)}
-                                        >
-                                            <Text style={[
-                                                styles.font11,
-                                                { color: isSelected ? '#FFFFFF' : theme.textColor, fontWeight: isSelected ? '700' : '500' }
-                                            ]}>
-                                                {item.label}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    );
-                                })
-                            ) : (
-                                <Text style={[styles.font11, { color: theme.textColor }]}>No categories available</Text>
-                            )}
-                        </ScrollView>
-                    </View>
-                )}
-            </View>
+            {showTopBoxes && (
+                <View style={[styles.topBox3, { backgroundColor: theme.cardBg }]}>
+                    {isMobile ? (
+                        <View style={styles.top3MobileLeftContainer}>
+                            <TouchableOpacity
+                                style={[styles.leftMenuHamburger, { backgroundColor: theme.accentColor + '15' }]}
+                                onPress={() => setIsMobileLeftMenuOpen(!isMobileLeftMenuOpen)}
+                            >
+                                <Text style={[styles.font12, { color: theme.accentColor, fontWeight: 'bold' }]}>
+                                    {isMobileLeftMenuOpen ? '✕ ' : '☰ '}
+                                </Text>
+                            </TouchableOpacity>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.top3MenuScroll}>
+                                {loadingTop3 ? (
+                                    <Text style={[styles.font12, { color: theme.textColor }]}>Loading categories...</Text>
+                                ) : top3MenuItems.length > 0 ? (
+                                    top3MenuItems.map((item, index) => {
+                                        const itemId = item.id || item.objectid || item.value || item.pid;
+                                        const isSelected = selectedTop3Id === itemId;
+                                        return (
+                                            <TouchableOpacity
+                                                key={index}
+                                                style={[
+                                                    styles.top3MenuItem,
+                                                    isSelected && { backgroundColor: theme.accentColor, borderRadius: 6 }
+                                                ]}
+                                                onPress={() => handleTop3MenuPress(item)}
+                                            >
+                                                <Text style={[
+                                                    styles.font12,
+                                                    { color: isSelected ? '#FFFFFF' : theme.textColor, fontWeight: isSelected ? '700' : '500' }
+                                                ]}>
+                                                    {item.label}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })
+                                ) : (
+                                    <Text style={[styles.font12, { color: theme.textColor }]}>No categories available</Text>
+                                )}
+                            </ScrollView>
+                        </View>
+                    ) : (
+                        <View style={styles.topLeftBoxHeader}>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.top3MenuScrollCenter}>
+                                {loadingTop3 ? (
+                                    <Text style={[styles.font11, { color: theme.textColor }]}>Loading categories...</Text>
+                                ) : top3MenuItems.length > 0 ? (
+                                    top3MenuItems.map((item, index) => {
+                                        const itemId = item.id || item.objectid || item.value || item.pid;
+                                        const isSelected = selectedTop3Id === itemId;
+                                        return (
+                                            <TouchableOpacity
+                                                key={index}
+                                                style={[
+                                                    styles.top3MenuItem,
+                                                    isSelected && { backgroundColor: theme.accentColor, borderRadius: 6 }
+                                                ]}
+                                                onPress={() => handleTop3MenuPress(item)}
+                                            >
+                                                <Text style={[
+                                                    styles.font11,
+                                                    { color: isSelected ? '#FFFFFF' : theme.textColor, fontWeight: isSelected ? '700' : '500' }
+                                                ]}>
+                                                    {item.label}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })
+                                ) : (
+                                    <Text style={[styles.font11, { color: theme.textColor }]}>No categories available</Text>
+                                )}
+                            </ScrollView>
+                        </View>
+                    )}
+                </View>
+            )}
 
             {/* Mobile Left Menu Dropdown */}
-            {isMobile && isMobileLeftMenuOpen && (
+            {isMobile && isMobileLeftMenuOpen && showTopBoxes && (
                 <View style={[styles.mobileLeftDropdown, { backgroundColor: theme.cardBg }]}>
                     <Text style={[styles.font12, styles.menuHeader, { color: theme.accentColor }]}>Modules:</Text>
                     {loadingLeftMenu ? (
@@ -572,7 +600,7 @@ export default function CustomerPortal({
                 <View style={styles.middleSection}>
                     {!isMobile && !isLeftMenuCollapsed && (
                         <View style={[styles.leftMenuBox, { backgroundColor: theme.cardBg, width: 190 }]}>
-                            <ScrollView contentContainerStyle={styles.menuScroll}>
+                            <ScrollView contentContainerStyle={styles.menuScroll} onScroll={handleScroll} scrollEventThrottle={16}>
                                 <Text style={[styles.font11, styles.menuHeader, { color: theme.accentColor }]}>Modules</Text>
                                 {loadingLeftMenu ? (
                                     <Text style={[styles.font11, { color: theme.textColor, opacity: 0.6 }]}>Loading modules...</Text>
@@ -604,20 +632,31 @@ export default function CustomerPortal({
                             </ScrollView>
                         </View>
                     )}
-                    {/* Content Box Workspace with responsive padding */}
+                    {/* Content Box Workspace with responsive padding & scroll detection */}
                     <View style={[styles.contentBox, { backgroundColor: theme.cardBg, padding: isMobile ? 2 : 7 }]}>
                         {loadingContent ? (
                             <View style={styles.loadingContainer}>
                                 <Text style={[styles.font12, { color: theme.textColor, opacity: 0.6, fontStyle: 'italic' }]}>Loading secure document stream...</Text>
                             </View>
                         ) : htmlContent ? (
-                            <iframe
-                                srcDoc={htmlContent}
-                                style={{ width: '100%', flex: 1, border: 'none', backgroundColor: 'transparent' }}
-                                title="HTML Content Preview"
+                            <div
+                                onScroll={(e: any) => {
+                                    const currentScrollY = e.target.scrollTop;
+                                    const diff = currentScrollY - lastScrollY.current;
+                                    if (diff > 5 && currentScrollY > 20) {
+                                        setShowTopBoxes(false);
+                                        setIsMobileTopMenuOpen(false);
+                                        setIsMobileLeftMenuOpen(false);
+                                    } else if (diff < -5 || currentScrollY <= 10) {
+                                        setShowTopBoxes(true);
+                                    }
+                                    lastScrollY.current = currentScrollY;
+                                }}
+                                style={{ width: '100%', height: '100%', overflowY: 'auto', border: 'none', backgroundColor: 'transparent' }}
+                                dangerouslySetInnerHTML={{ __html: htmlContent }}
                             />
                         ) : (
-                            <ScrollView contentContainerStyle={styles.contentScroll}></ScrollView>
+                            <ScrollView contentContainerStyle={styles.contentScroll} onScroll={handleScroll} scrollEventThrottle={16}></ScrollView>
                         )}
                     </View>
                 </View>

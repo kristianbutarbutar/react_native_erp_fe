@@ -1,6 +1,10 @@
 export * from 'react-native-web';
 import * as ReactNativeWeb from 'react-native-web';
 
+// Mock types/classes for Web compatibility
+export class NativeSyntheticEvent {}
+export class NativeScrollEvent {}
+
 class EventEmitterClass {
   constructor() {
     this.listeners = {};
