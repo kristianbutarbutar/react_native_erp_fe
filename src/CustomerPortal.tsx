@@ -1,5 +1,9 @@
 // customer/CustomerPortal.tsx
 
+if (typeof window !== 'undefined' && typeof (window as any).global === 'undefined') {
+    (window as any).global = window;
+}
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
     StyleSheet,
@@ -12,6 +16,8 @@ import {
     Animated,
 } from 'react-native';
 import { loadMenu, showHtml } from './ts/CustomerPortal';
+import ContactPanel from './ContactPanel';
+import GuestChat from './GuestChat';
 
 interface CustomerPortalProps {
     objectid?: string;
@@ -82,6 +88,8 @@ export default function CustomerPortal({
     const [isMobileTopMenuOpen, setIsMobileTopMenuOpen] = useState<boolean>(false);
     const [isMobileLeftMenuOpen, setIsMobileLeftMenuOpen] = useState<boolean>(false);
     const [faceIndex, setFaceIndex] = useState<number>(0);
+    const [showContactModal, setShowContactModal] = useState<boolean>(false);
+    const [showGuestChatModal, setShowGuestChatModal] = useState<boolean>(false);
 
     // Top 3 Menu Data State & Selection
     const [top3MenuItems, setTop3MenuItems] = useState<any[]>([]);
@@ -100,6 +108,9 @@ export default function CustomerPortal({
     // Scroll visibility states for Top boxes (Top 1 stays visible, Top 2 & 3 collapse on scroll up)
     const [showTopBoxes, setShowTopBoxes] = useState<boolean>(true);
     const lastScrollY = useRef<number>(0);
+
+    // Video reference to force play programmatically on mount
+    const videoRef = useRef<HTMLVideoElement | null>(null);
 
     // Animation values for rotating box effect
     const [translateAnim] = useState(new Animated.Value(0));
@@ -298,6 +309,15 @@ export default function CustomerPortal({
         }
     }, [recordid]);
 
+    // Force play the video element on mount in case browser autoplay policies block standard attributes
+    useEffect(() => {
+        if (videoRef.current) {
+            videoRef.current.play().catch((err) => {
+                console.log('Video autoplay prevented by browser policy:', err);
+            });
+        }
+    }, []);
+
     // 4-dimension box rotation interval effect
     useEffect(() => {
         const interval = setInterval(() => {
@@ -337,6 +357,10 @@ export default function CustomerPortal({
     const handleMenuPress = (id: string) => {
         if (id === 'management') {
             domainFunc('management');
+        } else if (id === 'call') {
+            setShowContactModal(true);
+        } else if (id === 'chat') {
+            setShowGuestChatModal(true);
         }
         setIsMobileTopMenuOpen(false);
     };
@@ -391,6 +415,21 @@ export default function CustomerPortal({
                                 {currentCode}
                             </Text>
                         </Animated.View>
+                    </View>
+
+                    {/* Attached Brand Video with explicit ref and source tag */}
+                    <View style={styles.headerVideoContainer}>
+                        <video
+                            ref={videoRef}
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            style={{ height: '18px', width: 'auto', display: 'block', objectFit: 'contain', background: 'transparent' }}
+                        >
+                            <source src="brand_logo.mp4" type="video/mp4" />
+                            Your browser does not support the video tag.
+                        </video>
                     </View>
                 </View>
 
@@ -675,6 +714,38 @@ export default function CustomerPortal({
                 </Text>
             </View>
 
+            {/* ================= CONTACT PANEL OVERLAY MODAL ================= */}
+            {showContactModal && (
+                <View style={styles.modalOverlay}>
+                    <TouchableOpacity
+                        style={styles.modalBackdropTouch}
+                        activeOpacity={1}
+                        onPress={() => setShowContactModal(false)}
+                    />
+                    <View style={styles.modalContentWrapper}>
+                        <ContactPanel onClose={() => setShowContactModal(false)} />
+                    </View>
+                </View>
+            )}
+
+            {/* ================= GUEST CHAT MODAL OVERLAY ================= */}
+            {showGuestChatModal && (
+                <View style={styles.modalOverlay}>
+                    <TouchableOpacity
+                        style={styles.modalBackdropTouch}
+                        activeOpacity={1}
+                        onPress={() => setShowGuestChatModal(false)}
+                    />
+                    <View style={styles.modalContentWrapper}>
+                        <GuestChat
+                            sessionid={sessionid}
+                            uid="guest"
+                            onClose={() => setShowGuestChatModal(false)}
+                        />
+                    </View>
+                </View>
+            )}
+
         </View>
     );
 }
@@ -732,6 +803,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginLeft: 4,
+    },
+    headerVideoContainer: {
+        marginLeft: 8,
+        height: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     rotatingBox: {
         width: 26,
@@ -918,5 +995,32 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 10,
         borderWidth: 0,
+    },
+    modalOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(15, 23, 42, 0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+        elevation: 1000,
+    },
+    modalBackdropTouch: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+    },
+    modalContentWrapper: {
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        position: 'relative',
+        zIndex: 1001,
     },
 });

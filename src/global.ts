@@ -5,8 +5,12 @@ const API_BASE_UPLOAD_URL = '';//`${BASE_URL}:3002`;
 const API_BASE_QONLY_URL = '';//`${BASE_URL}:3001`;
 const API_BASE_CALL_URL = `${BASE_URL}/callio`;//`${BASE_URL}:3006`;
 const API_FILES_URL = '';//`${BASE_URL}:3006`;
+const TOUID_AGENT = '4f82224a71503071459d1ffa1e1ea16ab11b20c17e1fb';
 const WS_CHAT = `${BASE_URL}/ws`;
 
+export const DOMAIN_TOUID_AGENT = () => {
+    return TOUID_AGENT;
+}
 
 export const DOMAIN_FILES = () => {
     return API_FILES_URL;

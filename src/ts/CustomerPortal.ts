@@ -67,9 +67,7 @@ export const loadMenu = async (
  */
 export async function showHtml(params: ShowHtmlParams): Promise<string | null> {
   try {
-    console.log("showHtml > params > ", JSON.stringify(params));
     const htmlStream = await fetchHtmlStream(params);
-    console.log("showHtml > response > ", htmlStream);
     return htmlStream;
   } catch (error) {
     console.error('Error in showHtml:', error);
