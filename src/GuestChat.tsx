@@ -257,7 +257,6 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
       let resolvedUid = uid;
       if ( (!resolvedUid || resolvedUid === 'guest') && !isMounted && !issubmitted) {
         try {
-          console.log("DOMAIN_TOUID_AGENT() > ", DOMAIN_TOUID_AGENT()); 
           issubmitted = true;
           const registered = await registerGuest({uid:'guest' + crypto.randomUUID(), touid:DOMAIN_TOUID_AGENT(), sessionid:sessionid});
           resolvedUid = registered || ('guest' + crypto.randomUUID());

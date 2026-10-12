@@ -116,29 +116,22 @@ export const registerGuest = async (
 ): Promise<string> => {
   try {
     // 1. Fetch schema columns for the portal user form
-    const __cols = await __QC({ objectid: "PORTAL_USER_FORM_ID", sessionid: params.sessionid });
+    const __cols = await qObject({ objectid: "31071f72-7bdc-4140-a505-39eccbdef7e9", sessionid:params.sessionid, whereClause:[{col_name:"pid",value:"PORTAL_USER_FORM_ID"}], filterColumns:[]});
     let _forms:any = [];
-
-    if (__cols && __cols.columns) {
-        __cols.columns.map((record:any) => {
-            _forms.push({col_name:record.col_name, value:(record.col_name.toLowerCase() === 'uid' ? params.uid : (record.col_name.toLowerCase() === 'pid' ? params.touid: "" ))});
+    if (__cols && __cols.data) {
+        const ____cols = __cols.data;
+        ____cols.map((record:any) => {
+            const __r = {col_name:record.col_name, value:(record.col_name.toLowerCase() === 'uid' ? params.uid : (record.col_name.toLowerCase() === 'pid' ? params.touid: "" ))};
+            _forms.push(__r);
         });
-        console.log("_forms > ", JSON.stringify(_forms));
     }
-
     // 2. Perform the save object API call to persist the guest and wait for the response
     const saveResult = await saveObject({
       objectid: "PORTAL_USER_FORM_ID",
       sessionid: params.sessionid,
       columns: _forms
     });
-
-    console.log("registerGuest > saveResult > ", JSON.stringify(saveResult));
-
     const res = await qObject({ objectid: "PORTAL_USER_FORM_ID", sessionid:params.sessionid, whereClause:[{col_name:"uid",value:params.uid}], filterColumns:["id"]});
-
-    console.log("_forms > res.id >", res.data[0].id);
-
     // 3. Return the registered uid only after the response is fully received
     return res.data[0].id || "";
   } catch (error) {
