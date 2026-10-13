@@ -199,7 +199,7 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
   const [nameUID, setNameUID] = useState<string>('');
   const [, setLastReadMsgSeqNo] = useState<number>(0);
 
-  const toUIDRef = useRef(toUID);
+  const activeUIDRef = useRef(activeUID);
 
   const [showVoiceCallPopup, setShowVoiceCallPopup] = useState<boolean>(false);
   const [isCallingWaiting, setIsCallingWaiting] = useState<boolean>(false);
@@ -250,29 +250,27 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
       }, 50);
     }
   };
-  let isMounted = false; let issubmitted = false;
+  let isMounted = false; let issubmitted = false; let __UIDName = '';
   useEffect(() => {
-    
     (async () => {
-      let resolvedUid = uid;
+      let resolvedUid = '';
       if ( (!resolvedUid || resolvedUid === 'guest') && !isMounted && !issubmitted) {
         try {
-          issubmitted = true;
-          const registered = await registerGuest({uid:'guest' + crypto.randomUUID(), touid:DOMAIN_TOUID_AGENT(), sessionid:sessionid});
-          resolvedUid = registered || ('guest' + crypto.randomUUID());
+          issubmitted = true; __UIDName = 'guest' + crypto.randomUUID();
+          const registered = await registerGuest({uid:__UIDName, touid:DOMAIN_TOUID_AGENT(), sessionid:sessionid});
+          resolvedUid = registered || '';
           isMounted =  true;
         } catch (e) {
           console.error('Failed to register guest:', e);
-          resolvedUid = 'guest' + crypto.randomUUID();
         }
       }
 
-      if (isMounted) {
+      if (isMounted && __UIDName) {
         setActiveUID(resolvedUid);
         setToUID(DOMAIN_TOUID_AGENT());
         setActiveToUID(DOMAIN_TOUID_AGENT());
         setActiveToUIDName('Support Agent');
-        setNameUID('Guest');
+        setNameUID(__UIDName);
       }
     })();
 
@@ -296,7 +294,10 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
     isConnectingRef.current = true;
     setIsWsConnecting(true);
 
-    const ws = new WebSocket(`${WS_URI}?uid=${activeUID}`);
+    //const ws = new WebSocket(`wss://localhost/ws?uid=${activeUID}`);//(`${WS_URI}?uid=${activeUID}`);
+    //const ws = new WebSocket(`wss://${window.location.host}/ws?uid=${activeUID}`);
+    const ws = new WebSocket(`wss://${window.location.host}/ws?uid=${activeUID}`);
+
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -333,8 +334,8 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
           let _lastMessage: any = {};
 
           parsedData.node.forEach((__msg: any) => {
-            const isFromCurrentUser = __msg.uid && nameUID && __msg.uid.toLowerCase() === nameUID.toLowerCase();
-
+            const isFromCurrentUser = nameUID.toLowerCase() === __msg.uid.toLowerCase();
+            console.log("activeUID.toLowerCase() === __msg.uid.toLowerCase() > ", nameUID.toLowerCase(), "===", __msg.uid.toLowerCase());
             setMessages((prev) => [
               ...prev,
               {
@@ -697,7 +698,6 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
               messages.map((msg, idx) => {
                 const matchFile = msg.text ? msg.text.match(/file:<<<<<<([A-Za-z0-9-]+)>>>>>>/) : null;
                 const __ufid = matchFile ? matchFile[1] : null;
-
                 const isCallMsg = msg.text && msg.text.includes('call:<<<<<<Calling>>>>>>');
                 const isEndCallMsg = msg.text && msg.text.includes('call:<<<<<<End>>>>>>');
                 let callDisplayLabel = '';
@@ -715,7 +715,6 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
                     callDisplayLabel = 'Calling was coming';
                   }
                 }
-
                 return (
                   <View
                     key={msg.id || idx}

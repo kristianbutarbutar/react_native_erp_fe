@@ -31,6 +31,7 @@ export interface ChatPanelProps {
 export const WS_URI = DOMAIN_WS_CHAT();
 
 const CALL_EXPIRY_MINUTES = 4;
+const READ_MESSAGE_INTERVAL_MS = 2000; // Configurable interval for read_message (2 seconds)
 
 const MinimizeIcon = ({ color = '#FFFFFF', size = 16 }: { color?: string; size?: number }) =>
   createElement(
@@ -300,8 +301,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
   const isConnectingRef = useRef<boolean>(false);
   const [connectWS, setConnectWS] = useState<boolean>(false);
   
-  // Connection progress loading state for WebSocket
-  const [isWsConnecting, setIsWsConnecting] = useState<boolean>(true);
+  // Connection progress loading state for WebSocket initialized to false to avoid premature flashing
+  const [isWsConnecting, setIsWsConnecting] = useState<boolean>(false);
 
   const messageSeqCounterRef = useRef<number>(0);
   const heartbeatIntervalRef = useRef<any>(null);
@@ -373,6 +374,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
   }, [uid, sessionid]);
 
   const connectWebSocket = () => {
+    // Prevent connecting if uid is not yet available (avoids 4001 server rejection & retry lag)
+    if (!uid) {
+      return;
+    }
+
     if (isConnectingRef.current || (wsRef.current && wsRef.current.readyState === WebSocket.OPEN)) {
       return;
     }
@@ -385,12 +391,21 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
     }
 
     isConnectingRef.current = true;
-    setIsWsConnecting(true); // Show progress indicator popup
+    setIsWsConnecting(true); // Show progress indicator once connecting
 
-    const ws = new WebSocket(`${WS_URI}?uid=${uid}`);
+    //const ws = new WebSocket(`${WS_URI}?uid=${uid}`);
+    const ws = new WebSocket(`wss://${window.location.host}/ws?uid=${activeUID}`);
     wsRef.current = ws;
 
+    // Add a connection timeout safeguard (4 seconds) to prevent hanging states
+    const connectionTimeout = setTimeout(() => {
+      if (ws.readyState === WebSocket.CONNECTING) {
+        ws.close();
+      }
+    }, 4000);
+
     ws.onopen = () => {
+      clearTimeout(connectionTimeout);
       isConnectingRef.current = false;
       setIsWsConnecting(false); // Hide progress indicator once connected
 
@@ -403,18 +418,19 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
         clearInterval(heartbeatIntervalRef.current);
       }
 
+      // Configure read_message interval to fire every 2 seconds (READ_MESSAGE_INTERVAL_MS) when connected
       heartbeatIntervalRef.current = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN && activeToUID) {
+        if (ws.readyState === WebSocket.OPEN && (activeToUID || toUIDRef.current)) {
           const messagePayload = {
             action: 'read_message',
             uid: uid,
-            touid: [toUIDRef.current],
+            touid: [toUIDRef.current || activeToUID],
             fromseqno: String(messageSeqCounterRef.current),
           };
 
           ws.send(JSON.stringify(messagePayload));
         }
-      }, 3000);
+      }, READ_MESSAGE_INTERVAL_MS);
     };
 
     ws.onmessage = (event) => {
@@ -464,14 +480,15 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
     };
 
     ws.onerror = (error) => {
+      clearTimeout(connectionTimeout);
       isConnectingRef.current = false;
-      setIsWsConnecting(true); // Keep showing progress if error occurs
       if (ws.readyState !== WebSocket.CLOSED) {
         console.error('WebSocket error:', error);
       }
     };
 
     ws.onclose = () => {
+      clearTimeout(connectionTimeout);
       isConnectingRef.current = false;
       setIsWsConnecting(true); // Show progress while reconnecting
 

@@ -4,12 +4,12 @@ import basicSsl from '@vitejs/plugin-basic-ssl';
 import path from 'path';
 
 const NODE_SERVICE = 'http://localhost';
-const CHAT_NODE_SERVICE = 'http://localhost';
+const CHAT_NODE_SERVICE = 'wss://localhost';
 
 export default defineConfig({
   server: {
     host: 'localhost',
-    port: 80,
+    port: 5173,
     https: false,
     allowedHosts: ['amgreat.id', '127.0.0.1', 'localhost'],
     proxy: {
@@ -184,7 +184,7 @@ export default defineConfig({
         },
       },
       '/ws': {
-        target: `${CHAT_NODE_SERVICE}:3004`,
+        target: 'https://localhost:3004',
         ws: true,
         changeOrigin: true,
         secure: false,
