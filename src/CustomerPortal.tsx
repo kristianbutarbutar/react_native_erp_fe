@@ -367,11 +367,9 @@ export default function CustomerPortal({
 
     const topLeftMenu = [
         { id: 'flag', type: 'image', label: 'ID', uri: 'https://flagcdn.com/w20/id.png' },
-        { id: 'management', type: 'text', icon: '⚙️', label: 'Management' },
+        { id: 'management', type: 'text', icon: '⚙️', label: 'Demo' },
         { id: 'call', type: 'text', icon: '📞', label: 'Call' },
         { id: 'chat', type: 'text', icon: '💬', label: 'Chat' },
-        { id: 'me', type: 'text', icon: '👤', label: 'Me' },
-        { id: 'login', type: 'text', icon: '🔑', label: 'Login' },
     ];
 
     const currentCode = dimensionFaces[faceIndex];
