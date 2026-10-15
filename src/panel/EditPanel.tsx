@@ -283,10 +283,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
 
       if (recordResult.success && recordResult.data) {
         const rawResData = recordResult.data;
-        const responseColumns: ColumnSchema[] =
-          rawResData.columns ||
-          rawResData.data?.columns ||
-          [];
+        const responseColumns: ColumnSchema[] = rawResData.columns ||[];
 
         setObjectLabel(recordResult?.data.objectLabel || '');
 
@@ -298,6 +295,9 @@ export const EditPanel: React.FC<EditPanelProps> = ({
         } else {
           fetchedRecord = rawResData;
         }
+        console.log("recordResult > ", JSON.stringify(recordResult));
+        console.log("------");
+        console.log("responseColumns > ", JSON.stringify(responseColumns));
 
         if (responseColumns.length > 0) {
           setColumns(responseColumns);
@@ -570,7 +570,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
     const isMoneyType = dtType.includes('money') || htmlType.includes('money');
     const isIdField = colKey === 'id';
 
-    const isDisabled = isIdField || (col.isdisabled && String(col.isdisabled).trim().toUpperCase() === 'YES');
+    const isDisabled = (colKey === 'id' ? true : (col.isdisabled && String(col.isdisabled).trim().toUpperCase() === 'YES' ? true: false));
 
     if (isIdField) {
       return (
