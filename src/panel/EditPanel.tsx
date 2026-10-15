@@ -283,7 +283,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
 
       if (recordResult.success && recordResult.data) {
 
-        console.log("recordResult.data.columns.columns > ", JSON.stringify(recordResult.data.columns.columns));
+        //console.log("recordResult.data.columns.columns > ", JSON.stringify(recordResult.data.columns.columns));
 
         const rawResData = recordResult.data;
         const responseColumns: ColumnSchema[] = recordResult.data.columns.columns || [];

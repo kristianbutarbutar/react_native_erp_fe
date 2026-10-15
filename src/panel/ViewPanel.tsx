@@ -345,21 +345,14 @@ export const ViewPanel: React.FC<ViewPanelProps> = ({
 
       if (recordResult.success && recordResult.data) {
         const rawResData = recordResult.data;
-        const responseColumns: ColumnSchema[] =
-          rawResData.columns ||
-          rawResData.data?.columns ||
-          [];
+        const responseColumns: ColumnSchema[] = recordResult.data.columns.columns || [];
 
         setObjectLabel(recordResult?.data?.objectLabel || '');
 
         let fetchedRecord: Record<string, any> | null = null;
         if (Array.isArray(rawResData.data)) {
           fetchedRecord = rawResData.data[0] || null;
-        } else if (rawResData.data) {
-          fetchedRecord = rawResData.data;
-        } else {
-          fetchedRecord = rawResData;
-        }
+        } 
 
         setRecordData(fetchedRecord);
 
