@@ -234,7 +234,7 @@ function parseDropdownDisplayValue(raw: any): string {
 
   const str = String(raw).trim();
   if (str.startsWith('[')) {
-    const match = str.match(/^\[(.*?)\]\s*(.*)$/);
+    const match = str.match(/^\[(.*?)\]\s*(.*)\$/);
     if (match) {
       return match[2] && match[2].trim().length > 0 ? match[2].trim() : match[1];
     }
@@ -398,12 +398,6 @@ export const ViewPanel: React.FC<ViewPanelProps> = ({
 
   const handleEditPress = () => {
     setShowEditPanel(true);
-    //if (typeof onEditClick === 'function') onEditClick();
-    /*if (onEditClick) {
-      onEditClick();
-    } else {
-      setShowEditPanel(true);
-    }*/
   };
 
   const handleOpenHtmlEditor = () => {
@@ -465,15 +459,36 @@ export const ViewPanel: React.FC<ViewPanelProps> = ({
           {col.label ? col.label.toUpperCase() : ''}
         </Text>
         {isFileField && hasValue ? (
-          <TouchableOpacity
-            onPress={handleValuePress}
-            activeOpacity={0.7}
-            style={{ cursor: 'pointer' } as any}
-          >
-            <Text style={[styles.valueText, styles.linkText, isDesktop && styles.desktopCompactValue]}>
-              show files
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.fileFieldContainer}>
+            <View
+              style={[
+                styles.fileValueDisplayBox,
+                isDesktop && styles.desktopCompactFileValueBox,
+                { flex: 1, minWidth: 0 },
+              ]}
+            >
+              <Text
+                style={[styles.valueText, isDesktop && styles.desktopCompactValue]}
+                numberOfLines={1}
+              >
+                {displayValue}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.fileActionBtn,
+                isDesktop && styles.desktopCompactFileActionBtn,
+                { flexShrink: 0 },
+                !isDesktop && { height: 38, paddingHorizontal: 12 },
+              ]}
+              onPress={handleValuePress}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.fileActionBtnText, isDesktop && styles.desktopCompactBtnText]}>
+                Show Files
+              </Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <Text style={[styles.valueText, isDesktop && styles.desktopCompactValue]}>
             {displayValue}
@@ -764,12 +779,11 @@ export const ViewPanel: React.FC<ViewPanelProps> = ({
             sessionId={sessionId} 
             onClose={() => {
               setShowEditPanel(false);
-              loadData(); // Re-loads ViewPanel data on close
-              console.log("ViewPanel > EditPanel > setShowEditPanel false");
+              loadData();
               if (onEditSuccess) onEditSuccess();
             }} 
             onSuccess={() => {
-              loadData(); // <--- Instantly reloads ViewPanel data!
+              loadData();
               if (onEditSuccess) onEditSuccess();
             }}
           />,
@@ -1185,10 +1199,12 @@ const styles = StyleSheet.create({
     paddingTop: 1,
     marginTop: 1,
     alignItems: 'flex-start',
+    width: '100%',
   },
   desktopCompactFieldInner: {
     padding: COMPACT_PADDING,
     margin: COMPACT_MARGIN,
+    width: '100%',
   },
   fieldLabel: {
     fontSize: 13,
@@ -1207,12 +1223,50 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     marginTop: 1,
   },
-  linkText: {
-    color: '#4F46E5',
-    textDecorationLine: 'underline',
+  desktopCompactValue: {
+    fontSize: COMPACT_FONT_SIZE,
+  },
+  fileFieldContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    width: '100%',
+    marginTop: 2,
+  },
+  fileValueDisplayBox: {
+    height: 38,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+  },
+  desktopCompactFileValueBox: {
+    height: 20,
+    borderRadius: 2,
+    borderWidth: 0.5,
+    paddingHorizontal: 4,
+  },
+  fileActionBtn: {
+    height: 38,
+    paddingHorizontal: 12,
+    backgroundColor: '#4F46E5',
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  desktopCompactFileActionBtn: {
+    height: 20,
+    paddingHorizontal: 6,
+    borderRadius: 2,
+  },
+  fileActionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: '600',
   },
-  desktopCompactValue: {
+  desktopCompactBtnText: {
     fontSize: COMPACT_FONT_SIZE,
   },
   actionRow: {
@@ -1280,9 +1334,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#FFFFFF',
-  },
-  desktopCompactBtnText: {
-    fontSize: COMPACT_FONT_SIZE,
   },
   footerRow: {
     minHeight: 28,

@@ -597,7 +597,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
                 styles.textInput,
                 isDesktop && styles.desktopCompactInput,
                 styles.disabledField,
-                { flex: 1, marginTop: 0 },
+                { flex: 1, minWidth: 0, marginTop: 0 },
                 !isDesktop && { height: 40, fontSize: 12 },
                 isDesktop && isMaximized && { height: 20 },
               ]}
@@ -610,6 +610,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
                 style={[
                   styles.htmlEditorBtn,
                   isDesktop && styles.desktopCompactFileActionBtn,
+                  { flexShrink: 0 },
                   !isDesktop && { height: 40, paddingHorizontal: 12 },
                   isDesktop && isMaximized && { height: 20 },
                 ]}
@@ -624,7 +625,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
           <View style={styles.fileFieldContainerCol}>
             <View style={styles.fileInputRow}>
               <TextInput
-                style={[styles.textInput, isDesktop && styles.desktopCompactInput, isDisabled && styles.disabledField, { flex: 1, marginTop: 0 }, !isDesktop && { fontSize: 12, height: 40 }]}
+                style={[styles.textInput, isDesktop && styles.desktopCompactInput, isDisabled && styles.disabledField, { flex: 1, minWidth: 0, marginTop: 0 }, !isDesktop && { fontSize: 12, height: 40 }]}
                 value={typeof rawValue === 'string' ? rawValue : Array.isArray(rawValue) ? rawValue.map((f: any) => f.name).join(', ') : ''}
                 onChangeText={(text) => !isDisabled && handleFieldChange(col.col_name, text)}
                 placeholder="Enter file value or path..."
@@ -632,7 +633,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
               />
               {!isDisabled && (
                 <TouchableOpacity
-                  style={[styles.fileActionBtn, isDesktop && styles.desktopCompactFileActionBtn, !isDesktop && { height: 40, paddingHorizontal: 10 }]}
+                  style={[styles.fileActionBtn, isDesktop && styles.desktopCompactFileActionBtn, { flexShrink: 0 }, !isDesktop && { height: 40, paddingHorizontal: 10 }]}
                   onPress={() => handlePickFiles(col)}
                   activeOpacity={0.7}
                 >
@@ -641,7 +642,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
               )}
               {!isDisabled && (
                 <TouchableOpacity
-                  style={[styles.fileActionBtn, isDesktop && styles.desktopCompactFileActionBtn, !isDesktop && { height: 40, paddingHorizontal: 10 }]}
+                  style={[styles.fileActionBtn, isDesktop && styles.desktopCompactFileActionBtn, { flexShrink: 0 }, !isDesktop && { height: 40, paddingHorizontal: 10 }]}
                   onPress={() => {
                     setSelectedFileValue(rawValue);
                     setShowFilesExplorer(true);
@@ -1631,7 +1632,7 @@ const styles = StyleSheet.create({
     paddingVertical: COMPACT_PADDING,
     margin: COMPACT_MARGIN,
   },
-  subtleText: {
+  subtleTest: {
     fontSize: 11,
     color: '#94A3B8',
     fontWeight: '500',
