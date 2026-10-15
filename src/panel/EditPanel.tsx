@@ -282,22 +282,18 @@ export const EditPanel: React.FC<EditPanelProps> = ({
       });
 
       if (recordResult.success && recordResult.data) {
+
+        console.log("recordResult.data.columns.columns > ", JSON.stringify(recordResult.data.columns.columns));
+
         const rawResData = recordResult.data;
-        const responseColumns: ColumnSchema[] = rawResData.columns ||[];
+        const responseColumns: ColumnSchema[] = recordResult.data.columns.columns || [];
 
         setObjectLabel(recordResult?.data.objectLabel || '');
 
         let fetchedRecord: Record<string, any> | null = null;
         if (Array.isArray(rawResData.data)) {
           fetchedRecord = rawResData.data[0] || null;
-        } else if (rawResData.data) {
-          fetchedRecord = rawResData.data;
-        } else {
-          fetchedRecord = rawResData;
         }
-        console.log("recordResult > ", JSON.stringify(recordResult));
-        console.log("------");
-        console.log("responseColumns > ", JSON.stringify(responseColumns));
 
         if (responseColumns.length > 0) {
           setColumns(responseColumns);
@@ -570,7 +566,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
     const isMoneyType = dtType.includes('money') || htmlType.includes('money');
     const isIdField = colKey === 'id';
 
-    const isDisabled = (colKey === 'id' ? true : (col.isdisabled && String(col.isdisabled).trim().toUpperCase() === 'YES' ? true: false));
+    const isDisabled = (colKey === 'id' ? false : (col.isdisabled && String(col.isdisabled).trim().toUpperCase() === 'YES' ? true: false));
 
     if (isIdField) {
       return (
