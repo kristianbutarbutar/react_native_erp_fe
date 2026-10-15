@@ -557,7 +557,7 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ domainFunc }
               id: cfg.id,
               title: cfg.title,
               items: extractArray(resp),
-              isCollapsed: false,
+              isCollapsed: true, // Set default to collapsed as requested
             };
           })
         );
