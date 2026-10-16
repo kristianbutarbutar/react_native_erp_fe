@@ -151,7 +151,6 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
         setErrorMessage('');
 
         try {
-            // Check if searchSelection is a valid JSON object containing columns & searchData attributes
             if (
                 searchSelection &&
                 typeof searchSelection === 'object' &&
@@ -187,13 +186,24 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
                     sessionId: sessionid || '',
                 });
 
-                if (result.success && result.columns) {
-                    const fetchedCols = result.columns;
-                    setColumns(fetchedCols);
+                let schemaColumns: ColumnSchema[] = [];
+                if (result.success) {
+                    if (result.columns) {
+                        schemaColumns = result.columns;
+                    } else if (result.data) {
+                        schemaColumns =
+                            result.data.columns ||
+                            result.data.schema?.columns ||
+                            (Array.isArray(result.data) ? result.data : []);
+                    }
+                }
+
+                if (schemaColumns.length > 0) {
+                    setColumns(schemaColumns);
 
                     const initialValues: Record<string, any> = {};
                     const initialLabels: Record<string, string> = {};
-                    fetchedCols.forEach((col: ColumnSchema) => {
+                    schemaColumns.forEach((col: ColumnSchema) => {
                         initialValues[col.col_name.toLowerCase()] = '';
                         initialLabels[col.col_name.toLowerCase()] = '';
                     });
@@ -239,12 +249,13 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
     };
 
     const handleDropdownPress = async (col: ColumnSchema) => {
-        const colId = col.id || col.col_name;
+        const colId = col.id || '';
         setActiveDropdownCol(col.col_name);
         setLoadingOptions(true);
         setDropdownOptions([]);
 
         try {
+            console.log("handleDropdownPress > colId > ", colId );
             const result = await getList({
                 col_id: colId,
                 sessionid: sessionid || '',
@@ -264,6 +275,56 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
         } finally {
             setLoadingOptions(false);
         }
+    };
+
+    // Render Field Input matching EditPanel pattern
+    const renderFieldInput = (col: ColumnSchema) => {
+        const key = col.col_name.toLowerCase();
+        const displayVal = displayLabels[key] ?? '';
+        const htmlType = (col.html_type || 'text').toLowerCase().trim();
+        const isDropdown = htmlType === 'dropdown';
+        const isDatePicker = htmlType.includes('date picker') || htmlType === 'date' || htmlType.includes('timestamp');
+
+        return (
+            <View key={col.col_name} style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>{col.label || col.col_name}</Text>
+                {isDropdown ? (
+                    <TouchableOpacity
+                        style={styles.dropdownTrigger}
+                        onPress={() => handleDropdownPress(col)}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={[styles.dropdownTriggerText, !displayVal && styles.placeholderText]}>
+                            {displayVal ? String(displayVal) : `Select ${col.label || col.col_name}...`}
+                        </Text>
+                    </TouchableOpacity>
+                ) : isDatePicker ? (
+                    <TouchableOpacity
+                        style={styles.dropdownTrigger}
+                        onPress={() => {
+                            setActiveDateCol(col.col_name);
+                            setTempDate(searchData[key] || '');
+                        }}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={[styles.dropdownTriggerText, !displayVal && styles.placeholderText]}>
+                            {displayVal ? String(displayVal) : 'dd/mm/yyyy'}
+                        </Text>
+                    </TouchableOpacity>
+                ) : (
+                    <TextInput
+                        style={styles.textInput}
+                        value={String(displayVal)}
+                        onChangeText={(text) => {
+                            handleDisplayLabelChange(key, text);
+                            handleInputChange(key, text);
+                        }}
+                        placeholder={`Enter ${col.label || col.col_name}...`}
+                        placeholderTextColor="#94A3B8"
+                    />
+                )}
+            </View>
+        );
     };
 
     // Execute doSearch and pass results back
@@ -375,100 +436,12 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
                             <View style={styles.columnsWrapper}>
                                 {/* Left Section */}
                                 <View style={styles.sectionColumn}>
-                                    {leftColumns.map((col) => {
-                                        const key = col.col_name.toLowerCase();
-                                        const displayVal = displayLabels[key] ?? '';
-                                        const htmlType = (col.html_type || 'text').toLowerCase();
-                                        const isDatePicker = htmlType.includes('date picker') || htmlType === 'date' || htmlType.includes('timestamp');
-
-                                        return (
-                                            <View key={col.col_name} style={styles.fieldGroup}>
-                                                <Text style={styles.fieldLabel}>{col.label || col.col_name}</Text>
-                                                {htmlType === 'dropdown' ? (
-                                                    <TouchableOpacity
-                                                        style={styles.dropdownTrigger}
-                                                        onPress={() => handleDropdownPress(col)}
-                                                    >
-                                                        <Text style={[styles.dropdownTriggerText, !displayVal && styles.placeholderText]}>
-                                                            {displayVal ? String(displayVal) : `Select ${col.label || col.col_name}...`}
-                                                        </Text>
-                                                    </TouchableOpacity>
-                                                ) : isDatePicker ? (
-                                                    <TouchableOpacity
-                                                        style={styles.dropdownTrigger}
-                                                        onPress={() => {
-                                                            setActiveDateCol(col.col_name);
-                                                            setTempDate(searchData[key] || '');
-                                                        }}
-                                                    >
-                                                        <Text style={[styles.dropdownTriggerText, !displayVal && styles.placeholderText]}>
-                                                            {displayVal ? String(displayVal) : 'dd/mm/yyyy'}
-                                                        </Text>
-                                                    </TouchableOpacity>
-                                                ) : (
-                                                    <TextInput
-                                                        style={styles.textInput}
-                                                        value={String(displayVal)}
-                                                        onChangeText={(text) => {
-                                                            handleDisplayLabelChange(key, text);
-                                                            handleInputChange(key, text);
-                                                        }}
-                                                        placeholder={`Enter ${col.label || col.col_name}...`}
-                                                        placeholderTextColor="#94A3B8"
-                                                    />
-                                                )}
-                                            </View>
-                                        );
-                                    })}
+                                    {leftColumns.map((col) => renderFieldInput(col))}
                                 </View>
 
                                 {/* Right Section */}
                                 <View style={styles.sectionColumn}>
-                                    {rightColumns.map((col) => {
-                                        const key = col.col_name.toLowerCase();
-                                        const displayVal = displayLabels[key] ?? '';
-                                        const htmlType = (col.html_type || 'text').toLowerCase();
-                                        const isDatePicker = htmlType.includes('date picker') || htmlType === 'date' || htmlType.includes('timestamp');
-
-                                        return (
-                                            <View key={col.col_name} style={styles.fieldGroup}>
-                                                <Text style={styles.fieldLabel}>{col.label || col.col_name}</Text>
-                                                {htmlType === 'dropdown' ? (
-                                                    <TouchableOpacity
-                                                        style={styles.dropdownTrigger}
-                                                        onPress={() => handleDropdownPress(col)}
-                                                    >
-                                                        <Text style={[styles.dropdownTriggerText, !displayVal && styles.placeholderText]}>
-                                                            {displayVal ? String(displayVal) : `Select ${col.label || col.col_name}...`}
-                                                        </Text>
-                                                    </TouchableOpacity>
-                                                ) : isDatePicker ? (
-                                                    <TouchableOpacity
-                                                        style={styles.dropdownTrigger}
-                                                        onPress={() => {
-                                                            setActiveDateCol(col.col_name);
-                                                            setTempDate(searchData[key] || '');
-                                                        }}
-                                                    >
-                                                        <Text style={[styles.dropdownTriggerText, !displayVal && styles.placeholderText]}>
-                                                            {displayVal ? String(displayVal) : 'dd/mm/yyyy'}
-                                                        </Text>
-                                                    </TouchableOpacity>
-                                                ) : (
-                                                    <TextInput
-                                                        style={styles.textInput}
-                                                        value={String(displayVal)}
-                                                        onChangeText={(text) => {
-                                                            handleDisplayLabelChange(key, text);
-                                                            handleInputChange(key, text);
-                                                        }}
-                                                        placeholder={`Enter ${col.label || col.col_name}...`}
-                                                        placeholderTextColor="#94A3B8"
-                                                    />
-                                                )}
-                                            </View>
-                                        );
-                                    })}
+                                    {rightColumns.map((col) => renderFieldInput(col))}
                                 </View>
                             </View>
                         </ScrollView>
