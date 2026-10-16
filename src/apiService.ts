@@ -56,7 +56,7 @@ export interface DoSavePayload {
 
 // Simulated API call for layout
 export const fetchAPI1 = async (payload: APIPayload): Promise<MenuItem[]> => {
-  console.log('Calling API1 with:', payload);
+  //console.log('Calling API1 with:', payload);
 
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -112,7 +112,7 @@ export const menuLoader = async (level: number, pid: string): Promise<MenuItem[]
  */
 export const getTableRecords = async <T = any>(queryParams: object): Promise<T> => {
   try {
-    console.log("before getTableRecords ", JSON.stringify(queryParams));
+    //console.log("before getTableRecords ", JSON.stringify(queryParams));
     const response = await fetch(QUERY_OBJECT_IN_TABLE_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -140,7 +140,7 @@ export const getTableRecords = async <T = any>(queryParams: object): Promise<T> 
  */
 export const showForm = async <T = any>(payload: ShowFormPayload): Promise<T> => {
   try {
-    console.log("before showForm ", JSON.stringify(payload));
+    //console.log("before showForm ", JSON.stringify(payload));
     const response = await fetch(GET_OBJECT_SCHEMA_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -167,7 +167,7 @@ export const showForm = async <T = any>(payload: ShowFormPayload): Promise<T> =>
  */
 export const getList = async <T = any>(payload: GetListPayload): Promise<T> => {
   try {
-    console.log("before getList ", JSON.stringify(payload));
+    //console.log("before getList ", JSON.stringify(payload));
     const response = await fetch(COL_LIST_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -181,7 +181,7 @@ export const getList = async <T = any>(payload: GetListPayload): Promise<T> => {
     }
 
     const data: T = await response.json();
-    console.log("getList request ", JSON.stringify(payload), " result: ", JSON.stringify(data));
+    //console.log("getList request ", JSON.stringify(payload), " result: ", JSON.stringify(data));
     return data;
   } catch (error) {
     console.error('Error calling getList API:', error);
@@ -220,7 +220,7 @@ export const getObjectRecords = async <T = any>(payload: GetObjectRecordsPayload
  */
 export const doSave = async <T = any>(payload: DoSavePayload): Promise<T> => {
   try {
-    console.log("before doSave ", JSON.stringify(payload));
+    //console.log("before doSave ", JSON.stringify(payload));
     const response = await fetch(SAVE_OBJECT_ENDPOINT, {
       method: 'POST',
       headers: {
