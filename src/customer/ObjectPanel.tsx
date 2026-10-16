@@ -296,6 +296,7 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
     const isDesktop = width >= 1024;
     const uniqueBoxName = 'child-action-box';
 
+    const [searchSharedPayload, setSearchSharedPayload] = useState<any | null>(null);
     const [currentFormId, setCurrentFormId] = useState<string>(formid);
     const [rowStart, setRowStart] = useState<number>(1);
     const [rowEnd, setRowEnd] = useState<number>(PAGE_SIZE);
@@ -343,6 +344,7 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
 
     const searchSelectionsFunction = (search:any) => {
         setSearchSelections(search);
+        console.log("ObjectPanel > searchSelectionsFunction > ", JSON.stringify(search));
     };
 
     const extractTabArray = (response: any): any[] => {
@@ -372,6 +374,14 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
                 row_start: start,
                 row_end: end,
             };
+            /** override if the SearchPanel trigger latest search */
+            if(searchSharedPayload){
+                console.log("queryPayload > before > ", JSON.stringify(queryPayload));
+
+                queryPayload.tableName = searchSharedPayload.tableName
+                queryPayload.whereClause = searchSharedPayload.whereClause;
+                console.log("queryPayload > after > ", JSON.stringify(searchSharedPayload));
+            }
 
             const response = await tableRecords(queryPayload);
 
@@ -511,6 +521,7 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
     const handleTabPress = (tab: any, boxKey: string, parentrecordid: string, parentobjectid: string) => {
         setActiveActionTab(tab);
         setPageParentId(parentrecordid);
+        setSearchSharedPayload(null);
 
         const tabFormId = tab.formid;
         setCurrentFormId(tabFormId);
@@ -638,6 +649,9 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
                 handleRecordClickForChildren(finalRecordId);
             }
         }
+    };
+    const payloadSharedFunction = ( queryPayload:any ) => {
+        setSearchSharedPayload(queryPayload);
     };
 
     const handleViewParentRecord = () => {
@@ -1075,6 +1089,7 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
                             title={`Search ${formLabel}`}
                             onClose={() => setIsSearchPanelOpen(false)}
                             onSearch={handleSearchResult}
+                            payloadShared = {payloadSharedFunction}
                             searchSelectionsFunction = {searchSelectionsFunction}
                             searchSelection = {searchSelections}
                         />

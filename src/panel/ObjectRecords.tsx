@@ -247,6 +247,7 @@ export const ObjectRecords: React.FC<ObjectRecordsProps> = ({
     const { width } = useWindowDimensions();
     const isDesktop = width >= 1024;
 
+    const [searchSharedPayload, setSearchSharedPayload] = useState<any | null>(null);
     const [rowStart, setRowStart] = useState<number>(1);
     const [rowEnd, setRowEnd] = useState<number>(PAGE_SIZE);
     const [totalRecords, setTotalRecords] = useState<number>(0);
@@ -364,6 +365,15 @@ export const ObjectRecords: React.FC<ObjectRecordsProps> = ({
                 row_start: start,
                 row_end: end,
             };
+            
+            /** SearcPanel was the last triggered search */
+            if(searchSharedPayload){
+                console.log("queryPayload > before > ", JSON.stringify(queryPayload));
+
+                queryPayload.tableName = searchSharedPayload.tableName
+                queryPayload.whereClause = searchSharedPayload.whereClause;
+                console.log("queryPayload > after > ", JSON.stringify(searchSharedPayload));
+            }
 
             const response = await tableRecords(queryPayload);
 
@@ -535,6 +545,10 @@ export const ObjectRecords: React.FC<ObjectRecordsProps> = ({
         setRowStart(1);
         setRowEnd(PAGE_SIZE);
         setIsSearchPanelOpen(false);
+    };
+
+    const payloadSharedFunction = ( queryPayload:any ) => {
+        setSearchSharedPayload(queryPayload);
     };
 
     const handleTableContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -837,6 +851,7 @@ export const ObjectRecords: React.FC<ObjectRecordsProps> = ({
                         title={`Search ${formLabel}`}
                         onClose={() => setIsSearchPanelOpen(false)}
                         onSearch={handleSearchResult}
+                        payloadShared = {payloadSharedFunction}
                         searchSelectionsFunction={searchSelectionsFunction}
                         searchSelection={searchSelections}
                     />

@@ -21,7 +21,7 @@ export interface DoSearchPayload {
  * and calling getTableRecords
  * @param payload - Object containing objectid and search filter array
  */
-export const doSearch = async <T = any>(payload: DoSearchPayload): Promise<T> => {
+export const doSearch = async <T = any>(payload: DoSearchPayload, payloadShared: (p:any) => void): Promise<T> => {
   const trimmedObjectId = payload.objectid?.trim();
   if (!trimmedObjectId) {
     throw new Error('Missing required parameter: objectid');
@@ -47,12 +47,18 @@ export const doSearch = async <T = any>(payload: DoSearchPayload): Promise<T> =>
     row_start: payload.row_start || 1,
     row_end: payload.row_end || 10,
   };
+
   //console.log('Calling doSearch getTableRecords with validated payload:', JSON.stringify(queryPayload));
   try {
+    
     const result = await getTableRecords(queryPayload);
-    //console.log('Calling doSearch result:', JSON.stringify(result));
+    
+    payloadShared( queryPayload );
+
     return result as T;
+    
   } catch (error) {
+    payloadShared( {} );
     console.error('Error calling doSearch API:', error);
     throw error;
   }

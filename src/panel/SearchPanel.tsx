@@ -31,6 +31,7 @@ export interface SearchPanelProps {
     sessionid?: string;
     title?: string;
     children?: React.ReactNode;
+    payloadShared?:(p:any) => void;
     searchSelectionsFunction?: (search: any) => void;
     searchSelection?: any; 
 }
@@ -98,6 +99,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
     sessionid = '',
     title = 'Search Form Records',
     children,
+    payloadShared,
     searchSelectionsFunction,
     searchSelection
 }) => {
@@ -358,7 +360,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
                 sessionId: sessionid || '',
                 row_start: 1,
                 row_end: 10,
-            });
+            }, payloadShared );
 
             if (onSearch) {
                 onSearch(searchResponse);
