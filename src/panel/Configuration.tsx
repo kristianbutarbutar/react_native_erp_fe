@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, createElement } from 'react';
+import React, { useState, useEffect, createElement, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 
 // @ts-ignore
@@ -72,6 +72,38 @@ const SESSION_ID = 'sess_12345';
 const COMPACT_FONT_SIZE = '10px';
 const COMPACT_PADDING = '1px';
 const COMPACT_MARGIN = '1px';
+
+// Helper to generate unique deterministic soft pastel color styles for inactive tabs
+const SOFT_PASTEL_PALETTES = [
+    { bg: '#EFF6FF', border: '#BFDBFE', text: '#1E40AF' }, // Soft Blue
+    { bg: '#F0FDF4', border: '#BBF7D0', text: '#166534' }, // Soft Emerald
+    { bg: '#F5F3FF', border: '#DDD6FE', text: '#5B21B6' }, // Soft Purple
+    { bg: '#FFF7ED', border: '#FFEDD5', text: '#9A3412' }, // Soft Peach
+    { bg: '#F0FDFA', border: '#99F6E4', text: '#115E59' }, // Soft Teal
+    { bg: '#FDF2F8', border: '#FBCFE8', text: '#9D174D' }, // Soft Pink
+    { bg: '#FEFCE8', border: '#FEF08A', text: '#854D0E' }, // Soft Yellow
+    { bg: '#F1F5F9', border: '#CBD5E1', text: '#334155' }, // Soft Slate
+    { bg: '#ECFDF5', border: '#A7F3D0', text: '#065F46' }, // Soft Mint
+    { bg: '#FAFAF9', border: '#E7E5E4', text: '#44403C' }, // Soft Warm Grey
+    { bg: '#EEF2FF', border: '#C7D2FE', text: '#3730A3' }, // Soft Indigo
+    { bg: '#FFF1F2', border: '#FECDD3', text: '#9F1239' }, // Soft Rose
+];
+
+const getSoftTabStyle = (keyIdentifier: string) => {
+    let hash = 0;
+    const str = String(keyIdentifier || '');
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % SOFT_PASTEL_PALETTES.length;
+    const palette = SOFT_PASTEL_PALETTES[index];
+
+    return {
+        backgroundColor: palette.bg,
+        borderColor: palette.border,
+        color: palette.text,
+    };
+};
 
 // Helper to safely extract target_tsx regardless of property casing
 const getTargetTsx = (item: TabItem | null | undefined): string => {
@@ -745,12 +777,18 @@ export const Configuration: React.FC<ConfigurationProps> = ({ children }) => {
                                                 selectedParent?.id === tab.id ||
                                                 selectedParent?.label === tab.label;
 
+                                            const softStyle = getSoftTabStyle(tabKey || tab.label);
+
                                             return (
                                                 <TouchableOpacity
                                                     key={tabKey}
                                                     style={[
                                                         styles.parentItem,
                                                         isDesktop && styles.desktopCompactItem,
+                                                        !isActive && {
+                                                            backgroundColor: softStyle.backgroundColor,
+                                                            borderColor: softStyle.borderColor,
+                                                        },
                                                         isActive && styles.activeParentItem,
                                                     ]}
                                                     onPress={() => handleSelectParent(tab)}
@@ -760,6 +798,7 @@ export const Configuration: React.FC<ConfigurationProps> = ({ children }) => {
                                                         style={[
                                                             styles.parentText,
                                                             isDesktop && styles.desktopCompactText,
+                                                            !isActive && { color: softStyle.color },
                                                             isActive && styles.activeParentText,
                                                         ]}
                                                     >
@@ -817,12 +856,18 @@ export const Configuration: React.FC<ConfigurationProps> = ({ children }) => {
                                                 selectedChild?.id === tab.id ||
                                                 selectedChild?.label === tab.label;
 
+                                            const softStyle = getSoftTabStyle(tabKey || tab.label);
+
                                             return (
                                                 <TouchableOpacity
                                                     key={tabKey}
                                                     style={[
                                                         styles.childTabItem,
                                                         isDesktop && styles.desktopCompactItem,
+                                                        !isActive && {
+                                                            backgroundColor: softStyle.backgroundColor,
+                                                            borderColor: softStyle.borderColor,
+                                                        },
                                                         isActive && styles.activeChildTabItem,
                                                     ]}
                                                     onPress={() => handleSelectChild(tab)}
@@ -832,6 +877,7 @@ export const Configuration: React.FC<ConfigurationProps> = ({ children }) => {
                                                         style={[
                                                             styles.childTabText,
                                                             isDesktop && styles.desktopCompactText,
+                                                            !isActive && { color: softStyle.color },
                                                             isActive && styles.activeChildTabText,
                                                         ]}
                                                     >
@@ -893,12 +939,19 @@ export const Configuration: React.FC<ConfigurationProps> = ({ children }) => {
                                                 activeTab?.id === tItem.tabid ||
                                                 activeTab?.label === tItem.tablabel;
 
+                                            const tabKey = tItem.tabid || tItem.tablabel || `custom-${tIdx}`;
+                                            const softStyle = getSoftTabStyle(tabKey);
+
                                             return (
                                                 <TouchableOpacity
                                                     key={`custom-tab-${tIdx}`}
                                                     style={[
                                                         styles.childTabItem,
                                                         isDesktop && styles.desktopCompactItem,
+                                                        !isCustomActive && {
+                                                            backgroundColor: softStyle.backgroundColor,
+                                                            borderColor: softStyle.borderColor,
+                                                        },
                                                         isCustomActive && styles.activeChildTabItem,
                                                     ]}
                                                     onPress={() => handleSelectCustomTab(tItem, box)}
@@ -908,6 +961,7 @@ export const Configuration: React.FC<ConfigurationProps> = ({ children }) => {
                                                         style={[
                                                             styles.childTabText,
                                                             isDesktop && styles.desktopCompactText,
+                                                            !isCustomActive && { color: softStyle.color },
                                                             isCustomActive && styles.activeChildTabText,
                                                         ]}
                                                     >

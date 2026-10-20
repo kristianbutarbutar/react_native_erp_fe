@@ -1,7 +1,7 @@
 // panel/ts/DeletePanel.ts
-import {DOMAIN_WEB} from '../../global';
+import { DOMAIN_WEB } from '../../global';
 
-export const DROP_OBJECT_ENDPOINT = `${DOMAIN_WEB()}/api/drop`;//'http://localhost:3000/api/drop';
+export const DROP_OBJECT_ENDPOINT = `${DOMAIN_WEB()}/api/drop`;
 
 export interface DropObjectPayload {
     tableName: string;
@@ -37,14 +37,14 @@ export async function dropObjectItem(
     try {
         const apiPayload = {
             tableName,
-            columns:[{col_name:"id", value:recordId}],
-            sessionid: payload.sessionid || '',
+            columns: [{ col_name: "id", value: recordId }]
         };
 
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-Session-Token': `${payload.sessionid}` || "",
             },
             body: JSON.stringify(apiPayload),
         });

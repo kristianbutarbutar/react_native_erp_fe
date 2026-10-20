@@ -178,6 +178,7 @@ export const NewPanel: React.FC<NewPanelProps> = ({
   const [loading, setLoading] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [sessionToken, setSessionToken] = useState<string>('');
 
   // Column Layout mode: 1 column per line vs 2 columns per line
   const [columnLayout, setColumnLayout] = useState<1 | 2>(2);
@@ -221,12 +222,12 @@ export const NewPanel: React.FC<NewPanelProps> = ({
     setErrorMessage('');
 
     try {
-      const result = await showForm({ tableName: trimmedTableName });
+      const result = await showForm({ tableName: trimmedTableName, src: `https://amgreat.id` });
       if (result.success && result.data) {
-        const fetchedCols =
-          result.data.columns ||
-          result.data.schema?.columns ||
-          (Array.isArray(result.data) ? result.data : []);
+
+        setSessionToken(result.sessionToken ? result.sessionToken : "");
+
+        const fetchedCols = result.data.columns || (Array.isArray(result.data) ? result.data : []);
 
         setColumns(fetchedCols);
 
@@ -244,7 +245,6 @@ export const NewPanel: React.FC<NewPanelProps> = ({
             initialLabels[key] = '';
           }
         });
-
         setFormData(initialValues);
         setDisplayLabels(initialLabels);
       } else {
@@ -415,8 +415,9 @@ export const NewPanel: React.FC<NewPanelProps> = ({
       });
 
       const result = await createForm({
+        sessionToken: sessionToken || "",
         tableName: trimmedTableName,
-        sessionId: sessionId || '',
+        sessionId: sessionToken || '',
         columns: columnPayload,
       });
 

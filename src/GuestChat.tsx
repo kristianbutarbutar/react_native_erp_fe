@@ -32,6 +32,27 @@ export const WS_URI = DOMAIN_WS_CHAT();
 
 const CALL_EXPIRY_MINUTES = 4;
 
+// CSS Animation Injection for Cloudy Circle Animation
+const wsStatusAnimationStyles = `
+  @keyframes wsCloudyRotate {
+    0% {
+      transform: rotate(0deg) scale(1);
+      box-shadow: 0 0 4px rgba(99, 102, 241, 0.4);
+    }
+    50% {
+      transform: rotate(180deg) scale(1.1);
+      box-shadow: 0 0 10px rgba(99, 102, 241, 0.8);
+    }
+    100% {
+      transform: rotate(360deg) scale(1);
+      box-shadow: 0 0 4px rgba(99, 102, 241, 0.4);
+    }
+  }
+  .ws-cloudy-circle-animating {
+    animation: wsCloudyRotate 2s infinite linear;
+  }
+`;
+
 const MinimizeIcon = ({ color = '#FFFFFF', size = 16 }: { color?: string; size?: number }) =>
   createElement(
     'svg',
@@ -228,7 +249,7 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
   const wsRef = useRef<WebSocket | null>(null);
   const isConnectingRef = useRef<boolean>(false);
   const [connectWS, setConnectWS] = useState<boolean>(false);
-  
+
   const [isWsConnecting, setIsWsConnecting] = useState<boolean>(true);
 
   const messageSeqCounterRef = useRef<number>(0);
@@ -254,12 +275,12 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
   useEffect(() => {
     (async () => {
       let resolvedUid = '';
-      if ( (!resolvedUid || resolvedUid === 'guest') && !isMounted && !issubmitted) {
+      if ((!resolvedUid || resolvedUid === 'guest') && !isMounted && !issubmitted) {
         try {
           issubmitted = true; __UIDName = 'guest' + crypto.randomUUID();
-          const registered = await registerGuest({uid:__UIDName, touid:DOMAIN_TOUID_AGENT(), sessionid:sessionid});
+          const registered = await registerGuest({ uid: __UIDName, touid: DOMAIN_TOUID_AGENT(), sessionid: sessionid });
           resolvedUid = registered || '';
-          isMounted =  true;
+          isMounted = true;
         } catch (e) {
           console.error('Failed to register guest:', e);
         }
@@ -294,9 +315,8 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
     isConnectingRef.current = true;
     setIsWsConnecting(true);
 
-    //const ws = new WebSocket(`wss://localhost/ws?uid=${activeUID}`);//(`${WS_URI}?uid=${activeUID}`);
-    //const ws = new WebSocket(`wss://${window.location.host}/ws?uid=${activeUID}`);
-    const ws = new WebSocket(`wss://${window.location.host}/ws?uid=${activeUID}`);
+    const __uri = `ws://${window.location.host}/ws?uid=${activeUID}`;
+    const ws = new WebSocket(__uri);
 
     wsRef.current = ws;
 
@@ -335,7 +355,6 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
 
           parsedData.node.forEach((__msg: any) => {
             const isFromCurrentUser = nameUID.toLowerCase() === __msg.uid.toLowerCase();
-            console.log("activeUID.toLowerCase() === __msg.uid.toLowerCase() > ", nameUID.toLowerCase(), "===", __msg.uid.toLowerCase());
             setMessages((prev) => [
               ...prev,
               {
@@ -630,6 +649,8 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
         isMaximized && styles.maximizedContainer,
       ]}
     >
+      {createElement('style', null, wsStatusAnimationStyles)}
+
       {typeof window !== 'undefined' && (
         <input
           type="file"
@@ -678,6 +699,36 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
 
       {/* User Box */}
       <View style={styles.userBox}>
+        {/* Double Circle Status Indicator on left of User Box */}
+        <View style={styles.wsStatusIndicatorWrapper}>
+          <div
+            className={isWsConnecting ? 'ws-cloudy-circle-animating' : ''}
+            style={{
+              width: 20,
+              height: 20,
+              borderRadius: 10,
+              border: '2px solid #333333',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxSizing: 'border-box',
+              transition: 'all 0.3s ease',
+              backgroundColor: isWsConnecting ? '#EEF2FF' : '#FFFFFF',
+            }}
+          >
+            <div
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: 5,
+                border: '1.5px solid #333333',
+                backgroundColor: isWsConnecting ? '#6366F1' : '#10B981',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+        </View>
+
         <Text style={styles.boxText}>Guest User ID: {nameUID || activeUID}</Text>
       </View>
 
@@ -1073,9 +1124,18 @@ const styles = StyleSheet.create({
     height: 42,
     borderWidth: 1,
     borderColor: '#000000',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
+    position: 'relative',
+    paddingHorizontal: 12,
+  },
+  wsStatusIndicatorWrapper: {
+    position: 'absolute',
+    left: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   middleBody: {
     flex: 1,

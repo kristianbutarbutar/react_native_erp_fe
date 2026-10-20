@@ -1,11 +1,12 @@
 // panel/ts/EditPanel.ts
-import {DOMAIN_WEB,DOMAIN_QONLY_WEB} from '../../global';
+import { DOMAIN_WEB, DOMAIN_QONLY_WEB } from '../../global';
 
-export const GET_OBJECT_SCHEMA_ENDPOINT = `${DOMAIN_QONLY_WEB()}/api/get-object-schema`;//'http://localhost:3001/api/get-object-schema';
-export const UPDATE_OBJECT_ENDPOINT = `${DOMAIN_WEB()}/api/update-object`;//'http://localhost:3000/api/update-object';
-export const COL_LIST_ENDPOINT = `${DOMAIN_QONLY_WEB()}/api/colList`;//'http://localhost:3001/api/colList';
+export const GET_OBJECT_SCHEMA_ENDPOINT = `${DOMAIN_QONLY_WEB()}/api/get-object-schema`;
+export const UPDATE_OBJECT_ENDPOINT = `${DOMAIN_WEB()}/api/update-object`;
+export const COL_LIST_ENDPOINT = `${DOMAIN_QONLY_WEB()}/api/colList`;
 
 export interface ShowFormPayload {
+  src?: string;
   tableName: string;
   objectId?: string;
 }
@@ -14,6 +15,7 @@ export interface ShowFormResult {
   success: boolean;
   data?: any;
   error?: string;
+  sessionToken?: string;
 }
 
 export interface UpdateColumnItem {
@@ -22,6 +24,7 @@ export interface UpdateColumnItem {
 }
 
 export interface UpdateObjectPayload {
+  sessionToken: string;
   tableName: string;
   recordid: string;
   sessionid?: string;
@@ -53,8 +56,6 @@ export async function showForm(
 ): Promise<ShowFormResult> {
   const tableName = payload?.tableName?.trim();
 
-  console.log("EditPanel.ts showForm > ", JSON.stringify(payload));
-
   if (!tableName) {
     return {
       success: false,
@@ -63,7 +64,7 @@ export async function showForm(
   }
 
   try {
-    const apiPayload: ShowFormPayload = { tableName };
+    const apiPayload: ShowFormPayload = { tableName, src: `https://amgreat.id` };
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -72,6 +73,8 @@ export async function showForm(
       },
       body: JSON.stringify(apiPayload),
     });
+
+    const sessionToken = response.headers.get('X-Session-Token');
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -82,6 +85,7 @@ export async function showForm(
     return {
       success: true,
       data,
+      sessionToken: sessionToken || ""
     };
   } catch (err: any) {
     console.error('Error in showForm:', err);
@@ -103,7 +107,7 @@ export async function updateObject(
 ): Promise<UpdateObjectResult> {
   const tableName = payload?.tableName?.trim();
   const recordId = payload?.recordid?.trim();
-  //console.log("handleSave -> EditPanel.ts -> updateObject", JSON.stringify(payload));
+
   if (!tableName || !recordId) {
     return {
       success: false,
@@ -115,7 +119,7 @@ export async function updateObject(
     const apiPayload = {
       tableName,
       recordid: recordId,
-      sessionid: payload.sessionid || '',
+      sessionid: payload.sessionToken || '',
       columns: payload.columns || [],
     };
 
@@ -123,6 +127,7 @@ export async function updateObject(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-Session-Token': `${payload.sessionToken}` || "",
       },
       body: JSON.stringify(apiPayload),
     });

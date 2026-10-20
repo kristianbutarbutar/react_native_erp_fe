@@ -29,7 +29,7 @@ export const saveObject = async (
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json', 'X-Session-Token': 'GUEST_CHAT_TOKEN',
         ...(activeSessionId ? { 'Authorization': `Bearer ${activeSessionId}` } : {}),
       },
       body: JSON.stringify({
@@ -61,9 +61,7 @@ export const __QC = async (
         'Content-Type': 'application/json',
         ...(activeSessionId ? { 'Authorization': `Bearer ${activeSessionId}` } : {}),
       },
-      body: JSON.stringify({
-        objectid: params.objectid
-      }),
+      body: JSON.stringify({ objectid: params.objectid }),
     });
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
@@ -77,23 +75,26 @@ export const __QC = async (
 };
 
 export const qObject = async (
-  params: {objectid:string, sessionid:string, whereClause:any, filterColumns:any},
+  params: { objectid: string, sessionid: string, whereClause: any, filterColumns: any },
   sessionid?: string,
   endpoint: string = DOMAIN_Q_OBJECT_ENDPOINT,
 ) => {
   try {
     const activeSessionId = sessionid || params.sessionid;
+
+    const __payload = {
+      objectid: params.objectid,
+      whereClause: params.whereClause,
+      filterColumns: params.filterColumns
+    };
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(activeSessionId ? { 'Authorization': `Bearer ${activeSessionId}` } : {}),
       },
-      body: JSON.stringify({
-        objectid: params.objectid,
-        whereClause: params.whereClause,
-        filterColumns: params.filterColumns
-      }),
+      body: JSON.stringify(__payload),
     });
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
@@ -112,26 +113,27 @@ export const qObject = async (
  * returning the resolved UID only after the API response is fully confirmed.
  */
 export const registerGuest = async (
-  params: { uid: string, sessionid: string, touid:string }
+  params: { uid: string, sessionid: string, touid: string }
 ): Promise<string> => {
   try {
     // 1. Fetch schema columns for the portal user form
-    const __cols = await qObject({ objectid: "31071f72-7bdc-4140-a505-39eccbdef7e9", sessionid:params.sessionid, whereClause:[{col_name:"pid",value:"PORTAL_USER_FORM_ID"}], filterColumns:[]});
-    let _forms:any = [];
+    const __cols = await qObject({ objectid: "31071f72-7bdc-4140-a505-39eccbdef7e9", sessionid: params.sessionid, whereClause: [{ col_name: "pid", value: "PORTAL_USER_FORM_ID" }], filterColumns: [] });
+    let _forms: any = [];
     if (__cols && __cols.data) {
-        const ____cols = __cols.data;
-        ____cols.map((record:any) => {
-            const __r = {col_name:record.col_name, value:(record.col_name.toLowerCase() === 'uid' ? params.uid : (record.col_name.toLowerCase() === 'pid' ? params.touid: "" ))};
-            _forms.push(__r);
-        });
+      const ____cols = __cols.data;
+      ____cols.map((record: any) => {
+        const __r = { col_name: record.col_name, value: (record.col_name.toLowerCase() === 'uid' ? params.uid : (record.col_name.toLowerCase() === 'pid' ? params.touid : "")) };
+        _forms.push(__r);
+      });
     }
     // 2. Perform the save object API call to persist the guest and wait for the response
-    const saveResult = await saveObject({
+    await saveObject({
       objectid: "PORTAL_USER_FORM_ID",
       sessionid: params.sessionid,
       columns: _forms
     });
-    const res = await qObject({ objectid: "PORTAL_USER_FORM_ID", sessionid:params.sessionid, whereClause:[{col_name:"uid",value:params.uid}], filterColumns:["id"]});
+    const res = await qObject({ objectid: "PORTAL_USER_FORM_ID", sessionid: params.sessionid, whereClause: [{ col_name: "uid", value: params.uid }], filterColumns: ["id"] });
+
     // 3. Return the registered uid only after the response is fully received
     return res.data[0].id || "";
   } catch (error) {

@@ -220,6 +220,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
   const [iconList, setIconList] = useState<any[]>([]);
   const [iconLoading, setIconLoading] = useState<boolean>(false);
   const [activeIconColName, setActiveIconColName] = useState<string>('');
+  const [sessionToken, setSessionToken] = useState<string>('');
 
   // Close modal on Escape key press
   useEffect(() => {
@@ -252,7 +253,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
     const trimmedRecordId = String(recordid || '').trim();
 
     if (!trimmedTableName || !trimmedRecordId) {
-      setErrorMessage('Missing Table Name or Record ID.');
+      setErrorMessage('Missing Object ID or Record ID.');
       return;
     }
 
@@ -261,7 +262,11 @@ export const EditPanel: React.FC<EditPanelProps> = ({
 
     try {
       let schemaColumns: ColumnSchema[] = [];
+
       const schemaResult = await showForm({ tableName: trimmedTableName });
+
+      setSessionToken(schemaResult.sessionToken ? schemaResult.sessionToken : "");
+
       if (schemaResult.success && schemaResult.data) {
         schemaColumns =
           schemaResult.data.columns ||
@@ -275,8 +280,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
         whereClause: [
           {
             col_name: 'id',
-            value: trimmedRecordId,
-            operator: '=',
+            value: trimmedRecordId
           },
         ],
       });
@@ -525,7 +529,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
 
       const payload = {
         tableName: tableName.trim(),
-        sessionid: sessionId || '',
+        sessionToken: sessionToken || '',
         recordid: recordid,
         columns: columnData,
       };
@@ -566,7 +570,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
     const isMoneyType = dtType.includes('money') || htmlType.includes('money');
     const isIdField = colKey === 'id';
 
-    const isDisabled = (colKey === 'id' ? false : (col.isdisabled && String(col.isdisabled).trim().toUpperCase() === 'YES' ? true: false));
+    const isDisabled = (colKey === 'id' ? false : (col.isdisabled && String(col.isdisabled).trim().toUpperCase() === 'YES' ? true : false));
 
     if (isIdField) {
       return (

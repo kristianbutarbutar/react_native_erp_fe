@@ -1,16 +1,18 @@
 // panel/ts/NewPanel.ts
-import {DOMAIN_WEB, DOMAIN_QONLY_WEB} from '../../global';
+import { DOMAIN_WEB, DOMAIN_QONLY_WEB } from '../../global';
 
-export const GET_OBJECT_SCHEMA_ENDPOINT = `${DOMAIN_QONLY_WEB()}/api/get-object-schema`;//'http://localhost:3001/api/get-object-schema';
-export const CREATE_OBJECT_ENDPOINT = `${DOMAIN_WEB()}/api/save-object`; //'http://localhost:3000/api/save-object';
-export const COL_LIST_ENDPOINT = `${DOMAIN_QONLY_WEB()}/api/colList`; //'http://localhost:3001/api/colList';
+export const GET_OBJECT_SCHEMA_ENDPOINT = `${DOMAIN_QONLY_WEB()}/api/get-object-schema`;
+export const CREATE_OBJECT_ENDPOINT = `${DOMAIN_WEB()}/api/save-object`;
+export const COL_LIST_ENDPOINT = `${DOMAIN_QONLY_WEB()}/api/colList`;
 
 export interface ShowFormPayload {
   tableName: string;
+  src: string;
 }
 
 export interface ShowFormResult {
   success: boolean;
+  sessionToken?: string;
   data?: any;
   error?: string;
 }
@@ -21,6 +23,7 @@ export interface CreateColumnItem {
 }
 
 export interface CreateFormPayload {
+  sessionToken?: string;
   tableName: string;
   columns: CreateColumnItem[];
   sessionId?: string;
@@ -59,7 +62,7 @@ export async function showForm(
   }
 
   try {
-    const apiPayload: ShowFormPayload = { tableName };
+    const apiPayload: ShowFormPayload = { tableName, src: payload.src };
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -69,6 +72,8 @@ export async function showForm(
       body: JSON.stringify(apiPayload),
     });
 
+    const sessionToken = response.headers.get('X-Session-Token');
+
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`HTTP status ${response.status}: ${errorText}`);
@@ -77,8 +82,10 @@ export async function showForm(
     const data = await response.json();
     return {
       success: true,
+      sessionToken: sessionToken || "",
       data,
     };
+
   } catch (err: any) {
     console.error('Error in showForm (NewPanel):', err);
     return {
@@ -110,12 +117,12 @@ export async function createForm(
       columns: payload.columns || [],
       sessionId: payload.sessionId || '',
     };
-    
-    console.log("call API ", CREATE_OBJECT_ENDPOINT, "Payload => ", JSON.stringify(apiPayload));
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-Session-Token': `${payload.sessionToken}` || "",
       },
       body: JSON.stringify(apiPayload),
     });

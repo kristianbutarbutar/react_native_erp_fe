@@ -270,6 +270,7 @@ export const ViewPanel: React.FC<ViewPanelProps> = ({
 
   const [columnLayout, setColumnLayout] = useState<1 | 2>(2);
   const [isSummaryMenuOpen, setIsSummaryMenuOpen] = useState<boolean>(false);
+  const [sessionToken, setSessionToken] = useState<string>('');
 
   // Sub-panel Visibility States
   const [showEditPanel, setShowEditPanel] = useState<boolean>(false);
@@ -309,7 +310,7 @@ export const ViewPanel: React.FC<ViewPanelProps> = ({
     const trimmedRecordId = String(recordid || '').trim();
 
     if (!trimmedTableName) {
-      setErrorMessage('No valid Table Name provided.');
+      setErrorMessage('No valid objectid provided.');
       return;
     }
 
@@ -324,6 +325,7 @@ export const ViewPanel: React.FC<ViewPanelProps> = ({
     try {
       let schemaColumns: ColumnSchema[] = [];
       const schemaResult = await showForm({ tableName: trimmedTableName });
+
       if (schemaResult.success && schemaResult.data) {
         schemaColumns =
           schemaResult.data.columns ||
@@ -352,7 +354,7 @@ export const ViewPanel: React.FC<ViewPanelProps> = ({
         let fetchedRecord: Record<string, any> | null = null;
         if (Array.isArray(rawResData.data)) {
           fetchedRecord = rawResData.data[0] || null;
-        } 
+        }
 
         setRecordData(fetchedRecord);
 
@@ -766,15 +768,15 @@ export const ViewPanel: React.FC<ViewPanelProps> = ({
       {showEditPanel &&
         renderPortal(
           <EditPanel
-            visible={showEditPanel} 
-            tableName={tableName} 
-            recordid={recordid} 
-            sessionId={sessionId} 
+            visible={showEditPanel}
+            tableName={tableName}
+            recordid={recordid}
+            sessionId={sessionId}
             onClose={() => {
               setShowEditPanel(false);
               loadData();
               if (onEditSuccess) onEditSuccess();
-            }} 
+            }}
             onSuccess={() => {
               loadData();
               if (onEditSuccess) onEditSuccess();

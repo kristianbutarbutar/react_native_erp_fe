@@ -30,6 +30,38 @@ const COMPACT_FONT_SIZE = '11px';
 const COMPACT_PADDING = '2px';
 const COMPACT_MARGIN = '2px';
 
+// Helper to generate unique deterministic soft pastel color styles for inactive tabs
+const SOFT_PASTEL_PALETTES = [
+    { bg: '#EFF6FF', border: '#BFDBFE', text: '#1E40AF' }, // Soft Blue
+    { bg: '#F0FDF4', border: '#BBF7D0', text: '#166534' }, // Soft Emerald
+    { bg: '#F5F3FF', border: '#DDD6FE', text: '#5B21B6' }, // Soft Purple
+    { bg: '#FFF7ED', border: '#FFEDD5', text: '#9A3412' }, // Soft Peach
+    { bg: '#F0FDFA', border: '#99F6E4', text: '#115E59' }, // Soft Teal
+    { bg: '#FDF2F8', border: '#FBCFE8', text: '#9D174D' }, // Soft Pink
+    { bg: '#FEFCE8', border: '#FEF08A', text: '#854D0E' }, // Soft Yellow
+    { bg: '#F1F5F9', border: '#CBD5E1', text: '#334155' }, // Soft Slate
+    { bg: '#ECFDF5', border: '#A7F3D0', text: '#065F46' }, // Soft Mint
+    { bg: '#FAFAF9', border: '#E7E5E4', text: '#44403C' }, // Soft Warm Grey
+    { bg: '#EEF2FF', border: '#C7D2FE', text: '#3730A3' }, // Soft Indigo
+    { bg: '#FFF1F2', border: '#FECDD3', text: '#9F1239' }, // Soft Rose
+];
+
+const getSoftTabStyle = (keyIdentifier: string) => {
+    let hash = 0;
+    const str = String(keyIdentifier || '');
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % SOFT_PASTEL_PALETTES.length;
+    const palette = SOFT_PASTEL_PALETTES[index];
+
+    return {
+        backgroundColor: palette.bg,
+        borderColor: palette.border,
+        color: palette.text,
+    };
+};
+
 export interface ObjectPanelProps {
     formid?: string;
     formLabel?: string;
@@ -342,7 +374,7 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
     const [headerParentObjectid, setHeaderParentObjectid] = useState<string>('');
     const [isHeaderCollapsed, setIsHeaderCollapsed] = useState<boolean>(false);
 
-    const searchSelectionsFunction = (search:any) => {
+    const searchSelectionsFunction = (search: any) => {
         setSearchSelections(search);
         console.log("ObjectPanel > searchSelectionsFunction > ", JSON.stringify(search));
     };
@@ -375,7 +407,7 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
                 row_end: end,
             };
             /** override if the SearchPanel trigger latest search */
-            if(searchSharedPayload){
+            if (searchSharedPayload) {
                 console.log("queryPayload > before > ", JSON.stringify(queryPayload));
 
                 queryPayload.tableName = searchSharedPayload.tableName
@@ -429,11 +461,11 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
                 parenttabid: pid,
                 sessionId,
             };
-            console.log( " before get parent tab: > ", JSON.stringify(__payload) );
+            console.log(" before get parent tab: > ", JSON.stringify(__payload));
 
             const res = await getParentTab(__payload);
 
-            console.log( " after get parent tab: > res > ", JSON.stringify(res) );
+            console.log(" after get parent tab: > res > ", JSON.stringify(res));
 
             if (res.success && res.data) {
                 const rawData = res.data?.data || res.data;
@@ -650,7 +682,7 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
             }
         }
     };
-    const payloadSharedFunction = ( queryPayload:any ) => {
+    const payloadSharedFunction = (queryPayload: any) => {
         setSearchSharedPayload(queryPayload);
     };
 
@@ -798,6 +830,7 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
                                 {actionTabs.map((tab, idx) => {
                                     const tabKey = tab.id || tab.tabid || `action-tab-${idx}`;
                                     const isTabActive = activeActionTab?.id === tab.id || activeActionTab?.label === tab.label;
+                                    const softStyle = getSoftTabStyle(tabKey || tab.label);
 
                                     return (
                                         <TouchableOpacity
@@ -805,6 +838,10 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
                                             style={[
                                                 styles.actionTabItem,
                                                 isDesktop && styles.desktopCompactActionTabItem,
+                                                !isTabActive && {
+                                                    backgroundColor: softStyle.backgroundColor,
+                                                    borderColor: softStyle.borderColor,
+                                                },
                                                 isTabActive && styles.activeActionTabItem,
                                             ]}
                                             onPress={() => handleTabPress(tab, '', '', '')}
@@ -814,6 +851,7 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
                                                 style={[
                                                     styles.actionTabText,
                                                     isDesktop && styles.desktopCompactText,
+                                                    !isTabActive && { color: softStyle.color },
                                                     isTabActive && styles.activeActionTabText,
                                                 ]}
                                             >
@@ -845,6 +883,7 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
                                     {box.tabs.map((tab, idx) => {
                                         const tabKey = tab.id || tab.tabid || `dynamic-tab-${idx}`;
                                         const isTabActive = activeActionTab?.id === tab.id || activeActionTab?.label === tab.label;
+                                        const softStyle = getSoftTabStyle(tabKey || tab.label);
 
                                         return (
                                             <TouchableOpacity
@@ -852,6 +891,10 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
                                                 style={[
                                                     styles.actionTabItem,
                                                     isDesktop && styles.desktopCompactActionTabItem,
+                                                    !isTabActive && {
+                                                        backgroundColor: softStyle.backgroundColor,
+                                                        borderColor: softStyle.borderColor,
+                                                    },
                                                     isTabActive && styles.activeActionTabItem,
                                                 ]}
                                                 onPress={() => handleTabPress(tab, box.key, box.parentrecordid, box.parentobjectid)}
@@ -861,6 +904,7 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
                                                     style={[
                                                         styles.actionTabText,
                                                         isDesktop && styles.desktopCompactText,
+                                                        !isTabActive && { color: softStyle.color },
                                                         isTabActive && styles.activeActionTabText,
                                                     ]}
                                                 >
@@ -1076,7 +1120,7 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
                             parentid={pageParentId}
                         />
                     </View>,
-                    
+
                 )}
 
             {isSearchPanelOpen &&
@@ -1089,9 +1133,9 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
                             title={`Search ${formLabel}`}
                             onClose={() => setIsSearchPanelOpen(false)}
                             onSearch={handleSearchResult}
-                            payloadShared = {payloadSharedFunction}
-                            searchSelectionsFunction = {searchSelectionsFunction}
-                            searchSelection = {searchSelections}
+                            payloadShared={payloadSharedFunction}
+                            searchSelectionsFunction={searchSelectionsFunction}
+                            searchSelection={searchSelections}
                         />
                     </View>,
                     99999999

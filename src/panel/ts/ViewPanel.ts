@@ -47,7 +47,7 @@ export async function showForm(
   if (!tableName) {
     return {
       success: false,
-      error: "Missing required parameter 'tableName'.",
+      error: "Missing required parameter 'objectid'.",
     };
   }
 
@@ -93,7 +93,7 @@ export async function viewObjectItem(
   if (!tableName) {
     return {
       success: false,
-      error: "Missing required parameter 'ObjectId'.",
+      error: "Missing required parameter objectid.",
     };
   }
 

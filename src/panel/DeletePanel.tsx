@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { dropObjectItem } from './ts/DeletePanel';
+import { showForm } from './ts/NewPanel';
 
 export interface DeletePanelProps {
   visible?: boolean;
@@ -19,7 +20,6 @@ export interface DeletePanelProps {
   title?: string;
   tableName?: string;
   recordid?: string;
-  sessionId?: string;
   children?: React.ReactNode;
 }
 
@@ -67,7 +67,6 @@ export const DeletePanel: React.FC<DeletePanelProps> = ({
   title = 'Delete Record Confirmation',
   tableName = '',
   recordid = '',
-  sessionId = '',
   children,
 }) => {
   const { width } = useWindowDimensions();
@@ -76,6 +75,7 @@ export const DeletePanel: React.FC<DeletePanelProps> = ({
   const [deleting, setDeleting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
+  const [sessionToken, setSessionToken] = useState<string>('');
 
   // Close modal on Escape key press
   useEffect(() => {
@@ -96,7 +96,25 @@ export const DeletePanel: React.FC<DeletePanelProps> = ({
 
   // Reset alert states on open
   useEffect(() => {
+
+    const handleShowForm = async () => {
+      try {
+        const result = await showForm({
+          tableName: tableName,
+          src: `https://amgreat.id`
+        });
+
+        if (result.success && result.data) {
+          setSessionToken(result.sessionToken ? result.sessionToken : "");
+        }
+
+      } catch (error) {
+        setErrorMessage('Failed to fetch session token.');
+      }
+    };
+
     if (visible) {
+      handleShowForm();
       setErrorMessage('');
       setSuccessMessage('');
       setDeleting(false);
@@ -121,7 +139,7 @@ export const DeletePanel: React.FC<DeletePanelProps> = ({
     const result = await dropObjectItem({
       tableName: trimmedTableName,
       recordid: trimmedRecordId,
-      sessionid: sessionId || '',
+      sessionid: sessionToken || '',
     });
 
     setDeleting(false);
