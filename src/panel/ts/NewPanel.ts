@@ -73,6 +73,7 @@ export async function showForm(
     });
 
     const sessionToken = response.headers.get('X-Session-Token');
+    console.log("showForm > "), sessionToken;
 
     if (!response.ok) {
       const errorText = await response.text();
