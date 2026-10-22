@@ -72,14 +72,14 @@ export async function showForm(
       body: JSON.stringify(apiPayload),
     });
 
-    const data = await response.json();
-
-    const sessionToken = await response.headers.get('X-Session-Token');
+    const sessionToken = response.headers.get('X-Session-Token') || response.headers.get('x-session-token');
 
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`HTTP status ${response.status}: ${errorText}`);
     }
+
+    const data = await response.json();
 
     console.log("showForm > ", sessionToken);
 
