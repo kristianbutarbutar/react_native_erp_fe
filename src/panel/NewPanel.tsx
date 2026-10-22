@@ -223,6 +223,7 @@ export const NewPanel: React.FC<NewPanelProps> = ({
 
     try {
       const result = await showForm({ tableName: trimmedTableName, src: `https://amgreat.id` });
+
       if (result.success && result.data) {
 
         setSessionToken(result.sessionToken ? result.sessionToken : "");
