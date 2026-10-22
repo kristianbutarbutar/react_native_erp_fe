@@ -780,7 +780,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
 
     setSessionToken(rssession.sessionToken ? rssession.sessionToken : "");
 
-    console.log("handleUploadFiles > sessionToken > ", rssession.sessionToken ? rssession.sessionToken : "");
+    console.log("handleUploadFiles > sessionToken > ", (rssession.sessionToken ? rssession.sessionToken : ""));
 
     try {
       const respond = await doUpload({

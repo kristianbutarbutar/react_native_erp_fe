@@ -618,11 +618,10 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
 
     const rssession = await showForm({ tableName: "fdeb98a5-9217-482a-9f2d-051ebe5b7c59", src: `https://amgreat.id` });
     setSessionToken(rssession.sessionToken ? rssession.sessionToken : "");
-    console.log("showForm > setSessionToken > ", sessionToken);
     try {
       const respond = await doUpload({
         files: selectedFiles,
-        sessionid: sessionToken || '',
+        sessionid: (rssession.sessionToken ? rssession.sessionToken : "") || '',
       });
 
       if (respond && respond.data?.id) {
