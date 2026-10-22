@@ -622,14 +622,18 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
     console.log("rssession > ", (rssession.sessionToken ? rssession.sessionToken : ""));
 
     try {
-      const respond = await doUpload({
-        files: selectedFiles,
-        sessionid: (rssession.sessionToken ? rssession.sessionToken : "") || '',
-      });
+      if (rssession.success && rssession.data) {
 
-      if (respond && respond.data?.id) {
-        __sendMessage("file:<<<<<<" + respond.data.id + ">>>>>>");
-        scrollToBottom();
+        const respond = await doUpload({
+          files: selectedFiles,
+          sessionid: (rssession.sessionToken ? rssession.sessionToken : "") || '',
+        });
+
+        if (respond && respond.data?.id) {
+          __sendMessage("file:<<<<<<" + respond.data.id + ">>>>>>");
+          scrollToBottom();
+        }
+
       }
     } catch (error) {
       console.error('File upload failed:', error);

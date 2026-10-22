@@ -929,25 +929,31 @@ export const HtmlPanel: React.FC<HtmlPanelProps> = ({
     };
 
     const handleSaveToCloud = async () => {
+
         setActiveMenu(null);
 
         const rssession = await showForm({ tableName: "fdeb98a5-9217-482a-9f2d-051ebe5b7c59", src: `https://amgreat.id` });
-        setSessionToken(rssession.sessionToken ? rssession.sessionToken : "");
 
-        const result = await saveToCloud({
-            session: (rssession.sessionToken ? rssession.sessionToken : ""),
-            file: htmlContent,
-            recordid: record?.pid || "",
-            fileName: (record?.file as string) || (record?.savedName as string) || 'document.html',
-            mimeType: 'text/html',
-        });
-        if (result.success) {
-            if (typeof setSavedFileId === 'function') {
-                setSavedFileId(result?.data?.id || '');
+        if (rssession.success && rssession.data) {
+            setSessionToken(rssession.sessionToken ? rssession.sessionToken : "");
+
+            const result = await saveToCloud({
+                session: (rssession.sessionToken ? rssession.sessionToken : ""),
+                file: htmlContent,
+                recordid: record?.pid || "",
+                fileName: (record?.file as string) || (record?.savedName as string) || 'document.html',
+                mimeType: 'text/html',
+            });
+            if (result.success) {
+                if (typeof setSavedFileId === 'function') {
+                    setSavedFileId(result?.data?.id || '');
+                }
+            } else {
+                ;
             }
-        } else {
-            ;
+
         }
+
     };
 
     const renderPortal = (content: React.ReactNode) => {

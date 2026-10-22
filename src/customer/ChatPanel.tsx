@@ -778,28 +778,34 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
 
     const rssession = await showForm({ tableName: "fdeb98a5-9217-482a-9f2d-051ebe5b7c59", src: `https://amgreat.id` });
 
-    setSessionToken(rssession.sessionToken ? rssession.sessionToken : "");
+    if (rssession.success && rssession.data) {
 
-    console.log("handleUploadFiles > sessionToken > ", (rssession.sessionToken ? rssession.sessionToken : ""));
+      setSessionToken(rssession.sessionToken ? rssession.sessionToken : "");
 
-    try {
-      const respond = await doUpload({
-        files: selectedFiles,
-        sessionid: (rssession.sessionToken ? rssession.sessionToken : "") || '',
-      });
+      console.log("handleUploadFiles > sessionToken > ", (rssession.sessionToken ? rssession.sessionToken : ""));
 
-      if (respond && respond.data?.id) {
-        __sendMessage("file:<<<<<<" + respond.data.id + ">>>>>>");
-        scrollToBottom();
+      try {
+
+        const respond = await doUpload({
+          files: selectedFiles,
+          sessionid: (rssession.sessionToken ? rssession.sessionToken : "") || '',
+        });
+
+        if (respond && respond.data?.id) {
+          __sendMessage("file:<<<<<<" + respond.data.id + ">>>>>>");
+          scrollToBottom();
+        }
+      } catch (error) {
+        console.error('File upload failed:', error);
+      } finally {
+        setIsUploading(false);
+        setShowFileUploadModal(false);
+        setSelectedFiles([]);
       }
-    } catch (error) {
-      console.error('File upload failed:', error);
-    } finally {
-      setIsUploading(false);
-      setShowFileUploadModal(false);
-      setSelectedFiles([]);
-    }
-  };
+    };
+
+  }
+
 
   const handleOpenFileExplorer = (fileId: any) => {
     if (fileId != null) {
