@@ -19,6 +19,7 @@ import { FilesExplorerPanel } from './customer/FilesExplorerPanel';
 import { VoiceCallManager } from './customer/VoiceCallManager';
 import { registerGuest } from './ts/GlobalChat';
 import { DOMAIN_WS_CHAT, DOMAIN_TOUID_AGENT } from './global';
+import { showForm } from './panel/ts/NewPanel';
 
 export interface GuestChatProps {
   sessionid: string;
@@ -218,7 +219,8 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
   const [activeToUIDName, setActiveToUIDName] = useState<string>('Support Agent');
   const [activeUID, setActiveUID] = useState<string>('');
   const [nameUID, setNameUID] = useState<string>('');
-  const [, setLastReadMsgSeqNo] = useState<number>(0);
+  const [lastReadMsgSeqNo, setLastReadMsgSeqNo] = useState<number>(0);
+  const [sessionToken, setSessionToken] = useState<string>('');
 
   const activeUIDRef = useRef(activeUID);
 
@@ -315,7 +317,9 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
     isConnectingRef.current = true;
     setIsWsConnecting(true);
 
-    const __uri = `ws://${window.location.host}/ws?uid=${activeUID}`;
+    //const __uri = `ws://${window.location.host}/ws?uid=${activeUID}`;
+    const __uri = `${WS_URI}/ws?uid=${activeUID}`;
+    //const ws = new WebSocket(`${WS_URI}/ws?uid=${activeUID}`);
     const ws = new WebSocket(__uri);
 
     wsRef.current = ws;
@@ -609,11 +613,16 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
 
   const handleUploadFiles = async () => {
     if (!selectedFiles || selectedFiles.length === 0) return;
+
     setIsUploading(true);
+
+    const rssession = await showForm({ tableName: "fdeb98a5-9217-482a-9f2d-051ebe5b7c59", src: `https://amgreat.id` });
+    setSessionToken(rssession.sessionToken ? rssession.sessionToken : "");
+    console.log("showForm > setSessionToken > ", sessionToken);
     try {
       const respond = await doUpload({
         files: selectedFiles,
-        sessionid: sessionid || '',
+        sessionid: sessionToken || '',
       });
 
       if (respond && respond.data?.id) {

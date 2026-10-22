@@ -1,8 +1,8 @@
 // customer/ObjectFile.ts
 
-import {DOMAIN_UPLOAD_WEB} from '../../global';
+import { DOMAIN_UPLOAD_WEB } from '../../global';
 
-const API_DOMAIN_UPLOAD = DOMAIN_UPLOAD_WEB(); 
+const API_DOMAIN_UPLOAD = DOMAIN_UPLOAD_WEB();
 
 export const QUERY_UPLOAD_ENDPOINT = `${API_DOMAIN_UPLOAD}/api/upload`;
 
@@ -16,7 +16,7 @@ export interface FileItem {
 
 export interface DoUploadPayload {
     files: FileItem[];
-    sessionId?: string;
+    sessionid?: string;
     [key: string]: any;
     htmleditor?: string;
     recordid?: string;
@@ -78,7 +78,7 @@ async function convertToBase64(file: FileItem): Promise<string> {
  * Uploads an array of files by converting each into Base64 and sending a JSON payload via POST.
  *
  * @param input - Object containing files array and sessionid.
- * @param endpoint - Configurable API endpoint URL (defaults to http://localhost:3002/api/upload).
+ * @param endpoint - Configurable API endpoint URL (defaults to /api/upload).
  * @returns Promise resolving to the API response object.
  */
 export async function doUpload(
@@ -86,7 +86,6 @@ export async function doUpload(
     endpoint: string = QUERY_UPLOAD_ENDPOINT
 ): Promise<DoUploadResult> {
     try {
-        const sessionId = input.sessionId || input.sessionid || '';
         const rawFiles = input.files || [];
         const inputHtmlEditor = input.htmleditor || '';
         const recordid = input.recordid || '';
@@ -94,7 +93,7 @@ export async function doUpload(
         const formattedFiles = [];
         for (const file of rawFiles) {
             const base64Data = await convertToBase64(file);
-            //console.log("File > ", file, ", base64Data > ", base64Data);
+
             formattedFiles.push({
                 filename: file.name || 'uploaded_file',
                 mimetype: file.type || 'application/octet-stream',
@@ -103,15 +102,17 @@ export async function doUpload(
         }
 
         const requestPayload = {
-            sessionid: sessionId,
+            sessionid: input.sessionid,
             message: '',
             files: formattedFiles, htmleditor: inputHtmlEditor, recordid: recordid,
         };
+        //console.log("doUpload > input.sessionid > ", input.sessionid);
 
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-Session-Token': input.sessionid || "",
             },
             body: JSON.stringify(requestPayload),
         });

@@ -35,6 +35,7 @@ import {
 import type { MenuGroupDef } from './ts/HtmlPanelTypes';
 import HtmlTopMenuBar from './HtmlTopMenuBar';
 import ObjectPanel from './../customer/ObjectPanel';
+import { showForm } from './ts/NewPanel';
 
 export interface HtmlPanelProps {
     initialContent?: string;
@@ -284,6 +285,8 @@ export const HtmlPanel: React.FC<HtmlPanelProps> = ({
     const [imageModalHeight, setImageModalHeight] = useState<string>('200');
     const [lockAspectRatio, setLockAspectRatio] = useState<boolean>(true);
     const [imageAspectRatio, setImageAspectRatio] = useState<number>(1.5);
+    const [sessionToken, setSessionToken] = useState<string>('');
+
 
     const [selectedColIndices, setSelectedColIndices] = useState<number[]>([]);
     const [activeTableTotalCols, setActiveTableTotalCols] = useState<number>(3);
@@ -928,8 +931,11 @@ export const HtmlPanel: React.FC<HtmlPanelProps> = ({
     const handleSaveToCloud = async () => {
         setActiveMenu(null);
 
+        const rssession = await showForm({ tableName: "fdeb98a5-9217-482a-9f2d-051ebe5b7c59", src: `https://amgreat.id` });
+        setSessionToken(rssession.sessionToken ? rssession.sessionToken : "");
+
         const result = await saveToCloud({
-            session: activeSessionId,
+            session: (rssession.sessionToken ? rssession.sessionToken : ""),
             file: htmlContent,
             recordid: record?.pid || "",
             fileName: (record?.file as string) || (record?.savedName as string) || 'document.html',
@@ -939,9 +945,8 @@ export const HtmlPanel: React.FC<HtmlPanelProps> = ({
             if (typeof setSavedFileId === 'function') {
                 setSavedFileId(result?.data?.id || '');
             }
-            ;//window.alert(JSON.stringify({ error: "Document saved to cloud successfully!" }));
         } else {
-            ;// window.alert(result.error || 'Failed to save document to cloud.');
+            ;
         }
     };
 

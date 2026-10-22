@@ -21,7 +21,7 @@ export interface SaveToCloudParams {
   file: string;
   fileName?: string;
   mimeType?: string;
-  recordid?: string | number;
+  recordid?: string;
   [key: string]: any;
 }
 
@@ -200,7 +200,7 @@ export async function saveToCloud(params: SaveToCloudParams): Promise<DoUploadRe
     const htmlFile = new File([blob], fileName, { type: mimeType });
 
     const uploadPayload = {
-      sessionId: session,
+      sessionid: session || "",
       files: [
         {
           name: fileName,
@@ -208,14 +208,14 @@ export async function saveToCloud(params: SaveToCloudParams): Promise<DoUploadRe
           originFile: htmlFile,
         },
       ],
-      htmleditor: 'htmleditor',
-      recordid: recordid,
+      htmleditor: 'htmleditor' || "",
+      recordid: recordid || "",
     };
 
     const response = await doUpload(uploadPayload);
 
     return response;
-    
+
   } catch (err: any) {
     console.error('Error in saveToCloud:', err);
     return {

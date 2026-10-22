@@ -19,6 +19,7 @@ import NewPanel from './../panel/NewPanel';
 import MemberInfo from './MemberInfo';
 import { VoiceCallManager } from './VoiceCallManager';
 import { DOMAIN_WS_CHAT } from '../global';
+import { showForm } from './../panel/ts/NewPanel';
 
 
 export interface ChatPanelProps {
@@ -297,6 +298,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
   const [callStatus, setCallStatus] = useState<string>('Idle');
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const voiceManagerRef = useRef<VoiceCallManager | null>(null);
+  const [sessionToken, setSessionToken] = useState<string>('');
 
   const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
   const [showFileUploadModal, setShowFileUploadModal] = useState<boolean>(false);
@@ -414,8 +416,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
     isConnectingRef.current = true;
     setIsWsConnecting(true); // Show progress indicator once connecting
 
-    //const ws = new WebSocket(`${WS_URI}?uid=${uid}`);
-    const ws = new WebSocket(`ws://${window.location.host}/ws?uid=${activeUID}`);
+    const ws = new WebSocket(`${WS_URI}/ws?uid=${activeUID}`);
     wsRef.current = ws;
 
     // Add a connection timeout safeguard (4 seconds) to prevent hanging states
@@ -772,11 +773,19 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
 
   const handleUploadFiles = async () => {
     if (!selectedFiles || selectedFiles.length === 0) return;
+
     setIsUploading(true);
+
+    const rssession = await showForm({ tableName: "fdeb98a5-9217-482a-9f2d-051ebe5b7c59", src: `https://amgreat.id` });
+
+    setSessionToken(rssession.sessionToken ? rssession.sessionToken : "");
+
+    console.log("handleUploadFiles > sessionToken > ", rssession.sessionToken ? rssession.sessionToken : "");
+
     try {
       const respond = await doUpload({
         files: selectedFiles,
-        sessionid: sessionid || '',
+        sessionid: (rssession.sessionToken ? rssession.sessionToken : "") || '',
       });
 
       if (respond && respond.data?.id) {
