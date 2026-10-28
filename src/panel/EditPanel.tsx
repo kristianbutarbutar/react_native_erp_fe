@@ -15,8 +15,8 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
-import { showForm, updateObject } from './ts/EditPanel';
-import { getObjectRecords } from './../apiService';
+import { updateObject } from './ts/EditPanel';
+import { getObjectRecords, showForm, getList } from './../apiService';
 import { viewObjectItem } from './../panel/ts/ViewPanel';
 import FilesExplorerPanel from './../customer/FilesExplorerPanel';
 import { doUpload } from './../customer/ts/ObjectFile';
@@ -198,6 +198,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
   const [columns, setColumns] = useState<ColumnSchema[]>([]);
   const [formData, setFormData] = useState<Record<string, any>>({});
+  const [displayLabels, setDisplayLabels] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -222,11 +223,20 @@ export const EditPanel: React.FC<EditPanelProps> = ({
   const [activeIconColName, setActiveIconColName] = useState<string>('');
   const [sessionToken, setSessionToken] = useState<string>('');
 
+  // Dropdown popup state management
+  const [activeDropdownCol, setActiveDropdownCol] = useState<ColumnSchema | null>(null);
+  const [dropdownOptions, setDropdownOptions] = useState<any[]>([]);
+  const [loadingDropdown, setLoadingDropdown] = useState<boolean>(false);
+
   // Close modal on Escape key press
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && typeof onClose === 'function' && !showFilesExplorer && !showIconModal && !showHtmlPanel) {
-        onClose();
+      if (e.key === 'Escape') {
+        if (activeDropdownCol) {
+          setActiveDropdownCol(null);
+        } else if (typeof onClose === 'function' && !showFilesExplorer && !showIconModal && !showHtmlPanel) {
+          onClose();
+        }
       }
     };
     if (visible && typeof window !== 'undefined') {
@@ -237,7 +247,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
         window.removeEventListener('keydown', handleKeyDown);
       }
     };
-  }, [visible, onClose, showFilesExplorer, showIconModal, showHtmlPanel]);
+  }, [visible, onClose, showFilesExplorer, showIconModal, showHtmlPanel, activeDropdownCol]);
 
   const setSavedFileId = (html: string) => {
     setSavedId(html);
@@ -263,7 +273,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
     try {
       let schemaColumns: ColumnSchema[] = [];
 
-      const schemaResult = await showForm({ tableName: trimmedTableName });
+      const schemaResult = await showForm({ objectid: trimmedTableName, src: "https://amgreat.id" });
 
       setSessionToken(schemaResult.sessionToken ? schemaResult.sessionToken : "");
 
@@ -286,8 +296,6 @@ export const EditPanel: React.FC<EditPanelProps> = ({
       });
 
       if (recordResult.success && recordResult.data) {
-
-        //console.log("recordResult.data.columns.columns > ", JSON.stringify(recordResult.data.columns.columns));
 
         const rawResData = recordResult.data;
         const responseColumns: ColumnSchema[] = recordResult.data.columns.columns || [];
@@ -313,10 +321,17 @@ export const EditPanel: React.FC<EditPanelProps> = ({
 
         if (fetchedRecord) {
           const normalizedForm: Record<string, any> = {};
+          const initialLabels: Record<string, string> = {};
+
           Object.keys(fetchedRecord).forEach((k) => {
-            normalizedForm[k.toLowerCase()] = fetchedRecord[k];
+            const lowKey = k.toLowerCase();
+            const val = fetchedRecord[k];
+            normalizedForm[lowKey] = val;
+            initialLabels[lowKey] = String(val ?? '');
           });
+
           setFormData(normalizedForm);
+          setDisplayLabels(initialLabels);
         }
       } else {
         setErrorMessage(recordResult.error || 'Failed to fetch record for editing.');
@@ -333,9 +348,14 @@ export const EditPanel: React.FC<EditPanelProps> = ({
   }, [visible, tableName, recordid, sessionId, objectLabel]);
 
   const handleFieldChange = (colName: string, value: any) => {
+    const key = colName.toLowerCase();
     setFormData((prev) => ({
       ...prev,
-      [colName.toLowerCase()]: value,
+      [key]: value,
+    }));
+    setDisplayLabels((prev) => ({
+      ...prev,
+      [key]: String(value ?? ''),
     }));
   };
 
@@ -380,6 +400,50 @@ export const EditPanel: React.FC<EditPanelProps> = ({
       ...prev,
       [key]: updatedFiles,
     }));
+  };
+
+  // Open dropdown list modal & fetch list options dynamically via getList
+  const handleOpenDropdown = async (col: ColumnSchema) => {
+    const key = col.col_name.toLowerCase();
+    const isDisabled = colKeyIsDisabled(col);
+    if (isDisabled) return;
+
+    setActiveDropdownCol(col);
+    setLoadingDropdown(true);
+    setDropdownOptions([]);
+
+    try {
+      const colId: string = col.id || col.col_name;
+      const response = await getList({ col_id: colId, sessionid: sessionId || '' });
+
+      if (response) {
+        const items = Array.isArray(response) ? response : response.data;
+        setDropdownOptions(items);
+      }
+    } catch (err) {
+      console.error('Error loading dropdown options:', err);
+    } finally {
+      setLoadingDropdown(false);
+    }
+  };
+
+  const handleSelectDropdownItem = (colName: string, item: any) => {
+    const key = colName.toLowerCase();
+    const optLabel = item.description || item.label || item.name || '';
+    const optId = item.id || item.value || '';
+
+    setFormData((prev) => ({
+      ...prev,
+      [key]: optId,
+    }));
+
+    const displayValue = optId && optLabel ? `${optLabel}` : optId || optLabel || String(item);
+    setDisplayLabels((prev) => ({
+      ...prev,
+      [key]: displayValue,
+    }));
+
+    setActiveDropdownCol(null);
   };
 
   const handleOpenHtmlEditor = async (colName: string) => {
@@ -485,7 +549,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
         if (htmlType === 'file' && Array.isArray(filesToUpload) && filesToUpload.length > 0) {
           const uploadResult = await doUpload({
             files: filesToUpload,
-            sessionId: sessionId || '',
+            sessionid: sessionToken || '',
           });
 
           if (uploadResult && uploadResult.success) {
@@ -558,19 +622,26 @@ export const EditPanel: React.FC<EditPanelProps> = ({
     return chunks;
   };
 
+  const colKeyIsDisabled = (col: ColumnSchema) => {
+    const colKey = col.col_name.toLowerCase();
+    return colKey === 'id' ? false : (col.isdisabled && String(col.isdisabled).trim().toUpperCase() === 'YES' ? true : false);
+  };
+
   const renderFieldInput = (col: ColumnSchema) => {
     const colKey = col.col_name.toLowerCase();
     const rawValue = formData[colKey] !== undefined && formData[colKey] !== null ? formData[colKey] : '';
+    const displayVal = displayLabels[colKey] ?? String(rawValue);
     const htmlType = col.html_type?.toLowerCase().trim() || '';
     const dtType = col.dt_type?.toLowerCase().trim() || '';
     const isFileField = htmlType === 'file';
     const isIconField = htmlType === 'icon';
+    const isDropdown = htmlType === 'dropdown';
     const isHtmlField = htmlType === 'html' || colKey === 'html_file';
     const isDateOrTimestamp = htmlType === 'date' || htmlType === 'timestamp' || htmlType.includes('timestamp') || dtType.includes('date') || dtType.includes('timestamp');
     const isMoneyType = dtType.includes('money') || htmlType.includes('money');
     const isIdField = colKey === 'id';
 
-    const isDisabled = (colKey === 'id' ? false : (col.isdisabled && String(col.isdisabled).trim().toUpperCase() === 'YES' ? true : false));
+    const isDisabled = colKeyIsDisabled(col);
 
     if (isIdField) {
       return (
@@ -621,6 +692,16 @@ export const EditPanel: React.FC<EditPanelProps> = ({
               </TouchableOpacity>
             )}
           </View>
+        ) : isDropdown ? (
+          <TouchableOpacity
+            style={[styles.dropdownControl, isDesktop && styles.desktopCompactControl, isDisabled && styles.disabledField, !isDesktop && { height: 40 }]}
+            onPress={() => !isDisabled && handleOpenDropdown(col)}
+            activeOpacity={isDisabled ? 1 : 0.7}
+          >
+            <Text style={[styles.dropdownText, isDesktop && styles.desktopCompactInputText, !displayVal && styles.placeholderText, isDisabled && styles.disabledText, !isDesktop && { fontSize: 12 }]} numberOfLines={1}>
+              {displayVal ? String(displayVal) : isDisabled ? '(Auto)' : `Select ${col.label || col.col_name}...`}
+            </Text>
+          </TouchableOpacity>
         ) : isFileField ? (
           <View style={styles.fileFieldContainerCol}>
             <View style={styles.fileInputRow}>
@@ -892,6 +973,61 @@ export const EditPanel: React.FC<EditPanelProps> = ({
           </Text>
         </View>
       </View>
+
+      {/* POPUP MODAL: SELECT DROPDOWN OPTION */}
+      {activeDropdownCol &&
+        renderPortal(
+          <View style={styles.dropdownOverlay}>
+            <TouchableOpacity
+              style={styles.backdrop}
+              activeOpacity={1}
+              onPress={() => setActiveDropdownCol(null)}
+            />
+            <View style={styles.dropdownModalBox}>
+              <View style={styles.dropdownHeader}>
+                <Text style={styles.dropdownTitleText}>
+                  Select {activeDropdownCol.label || activeDropdownCol.col_name}
+                </Text>
+                <TouchableOpacity onPress={() => setActiveDropdownCol(null)}>
+                  <CloseIcon color="#475569" size={14} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.dropdownBody}>
+                {loadingDropdown ? (
+                  <View style={styles.centerContainer}>
+                    <ActivityIndicator size="large" color="#4F46E5" />
+                    <Text style={styles.loadingText}>Loading options...</Text>
+                  </View>
+                ) : dropdownOptions.length > 0 ? (
+                  <ScrollView style={styles.dropdownScroll} contentContainerStyle={styles.dropdownScrollContent}>
+                    {dropdownOptions.map((opt, idx) => {
+                      const optLabel = opt.description || opt.label || '';
+                      const optId = opt.id || opt.value || '';
+                      const displayLabel = optId && optLabel ? `${optLabel}` : optId || optLabel || JSON.stringify(opt);
+
+                      return (
+                        <TouchableOpacity
+                          key={`drop-opt-${idx}`}
+                          style={styles.dropdownItemRow}
+                          onPress={() => handleSelectDropdownItem(activeDropdownCol.col_name, opt)}
+                          activeOpacity={0.6}
+                        >
+                          <Text style={styles.dropdownItemText}>{displayLabel}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                ) : (
+                  <View style={styles.centerContainer}>
+                    <Text style={styles.emptyText}>No options found.</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>,
+          99999999
+        )}
 
       {/* POPUP MODAL: SELECT ICON */}
       {showIconModal &&
@@ -1338,6 +1474,36 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     paddingHorizontal: 4,
   },
+  dropdownControl: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  desktopCompactControl: {
+    fontSize: COMPACT_FONT_SIZE,
+    paddingHorizontal: 4,
+    paddingVertical: COMPACT_PADDING,
+    borderRadius: 2,
+    borderWidth: 0.5,
+    marginTop: 1,
+    height: 20,
+  },
+  dropdownText: {
+    fontSize: 13,
+    color: '#0F172A',
+  },
+  desktopCompactInputText: {
+    fontSize: COMPACT_FONT_SIZE,
+  },
+  placeholderText: {
+    color: '#94A3B8',
+  },
   disabledField: {
     backgroundColor: '#F1F5F9',
     borderColor: '#E2E8F0',
@@ -1651,6 +1817,78 @@ const styles = StyleSheet.create({
     height: '100vh' as any,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  // DROPDOWN POPUP MODAL STYLES
+  dropdownOverlay: {
+    // @ts-ignore
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100vw' as any,
+    height: '100vh' as any,
+    backgroundColor: 'rgba(15, 23, 42, 0.4)',
+    zIndex: 999999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dropdownModalBox: {
+    width: '85%',
+    maxWidth: 420,
+    height: '70%',
+    maxHeight: 480,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#0F172A',
+    overflow: 'hidden',
+    zIndex: 2,
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: '0px 10px 25px rgba(15, 23, 42, 0.2)',
+  },
+  dropdownHeader: {
+    height: 44,
+    backgroundColor: '#F8FAFC',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+  },
+  dropdownTitleText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  dropdownBody: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  dropdownScroll: {
+    flex: 1,
+    width: '100%',
+  },
+  dropdownScrollContent: {
+    paddingVertical: 4,
+  },
+  dropdownItemRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+  },
+  dropdownItemText: {
+    fontSize: 13,
+    color: '#334155',
+    fontWeight: '500',
+  },
+  emptyText: {
+    fontSize: 12,
+    color: '#94A3B8',
   },
 });
 

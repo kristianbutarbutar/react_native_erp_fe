@@ -12,7 +12,7 @@ import {
     ActivityIndicator,
     useWindowDimensions,
 } from 'react-native';
-import { getObjectRecords, doSave } from './../apiService';
+import { getObjectRecords, doSave, showForm } from './../apiService';
 
 export interface FormAssignerProps {
     parentid?: string;
@@ -95,6 +95,7 @@ export const FormAssigner: React.FC<FormAssignerProps> = ({
 
     // Maximize / Minimize state
     const [isMaximized, setIsMaximized] = useState<boolean>(false);
+    const [sessionToken, setSessionToken] = useState<string>('');
 
     // Form state
     const [selectedChildId, setSelectedChildId] = useState<string>('');
@@ -151,6 +152,10 @@ export const FormAssigner: React.FC<FormAssignerProps> = ({
         setSaveError('');
 
         try {
+
+            const rssession = await showForm({ objectid: "fdeb98a5-9217-482a-9f2d-051ebe5b7c59", src: `https://amgreat.id` });
+            setSessionToken(rssession.sessionToken ? rssession.sessionToken : "");
+
             const savePayload = {
                 tableName: 'e11f7c82-419b-4e12-b94d-7a3b2c1d0e5f',
                 columns: [
@@ -160,7 +165,7 @@ export const FormAssigner: React.FC<FormAssignerProps> = ({
                     { col_name: 'label', value: selectedItemLabel },
                     { col_name: 'target_tsx', value: targetTsxValue.trim() },
                     { col_name: 'root_menu', value: rootMenuId || parentid },
-                ],
+                ], sessionid:(rssession.sessionToken ? rssession.sessionToken : "")
             };
 
             const result = await doSave(savePayload);

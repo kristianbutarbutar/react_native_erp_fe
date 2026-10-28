@@ -83,6 +83,16 @@ export default defineConfig({
           });
         },
       },
+      '/api/intent': {
+        target: `${NODE_SERVICE}:3000`,
+        changeOrigin: true,
+        secure: false,
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Vite Proxy] Incoming API Call -> Method: ${req.method}, Original URL: ${req.url}, Forwarding to Target: ${options.target}${proxyReq.path}`);
+          });
+        },
+      },
       '/api/inquery': {
         target: `${NODE_SERVICE}:3001`,
         changeOrigin: true,

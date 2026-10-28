@@ -9,6 +9,7 @@ const QUERY_OBJECT_IN_TABLE_ENDPOINT = `${API_BASE_URL}/api/query-object-in-tabl
 const SAVE_OBJECT_ENDPOINT = `${API_BASE_URL}/api/save-object`;
 const GET_OBJECT_SCHEMA_ENDPOINT = `${API_BASE_URL}/api/get-object-schema`; //'http://localhost:3001/api/get-object-schema';
 const COL_LIST_ENDPOINT = DOMAIN_WEB() + `${API_BASE_URL}/api/colList`; //'http://localhost:3001/api/colList';
+const TRACK_VIEW_ENDPOINT = `${API_BASE_URL}/api/intent`;
 
 export interface APIPayload {
   id: string;
@@ -31,6 +32,7 @@ export interface QueryObjectPayload {
 export interface ShowFormPayload {
   objectid: string;
   sessionId?: string;
+  src?: string;
 }
 
 export interface GetListPayload {
@@ -42,6 +44,7 @@ export interface GetObjectRecordsPayload {
   tableName?: string;
   objectid?: string;
   whereClause: any[];
+  filterColumns: any[];
 }
 
 export interface SaveColumnItem {
@@ -52,22 +55,17 @@ export interface SaveColumnItem {
 export interface DoSavePayload {
   tableName: string;
   columns: SaveColumnItem[];
+  sessionid: string;
 }
 
-// Simulated API call for layout
-export const fetchAPI1 = async (payload: APIPayload): Promise<MenuItem[]> => {
-  //console.log('Calling API1 with:', payload);
-
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([
-        { id: `${payload.id}_1`, label: `${payload.id} - Menu 1`, val: 'Value 1', formid: 'form_001' },
-        { id: `${payload.id}_2`, label: `${payload.id} - Menu 2`, val: 'Value 2', formid: 'form_002' },
-        { id: `${payload.id}_3`, label: `${payload.id} - Menu 3`, val: 'Value 3', formid: 'form_003' },
-      ]);
-    }, 500);
-  });
-};
+export interface TrackViewPayload {
+  objectid: string;
+  target: string;
+  operator: string;
+  recordid: string;
+  value: string;
+  sessionid: string;
+}
 
 /**
  * Loads menu items from backend API via POST and captures formid field
@@ -84,7 +82,6 @@ export const menuLoader = async (level: number, pid: string): Promise<MenuItem[]
   };
 
   try {
-
     const response = await fetch(QUERY_OBJECT_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -148,12 +145,17 @@ export const showForm = async <T = any>(payload: ShowFormPayload): Promise<T> =>
       },
       body: JSON.stringify(payload),
     });
+    
+    const sessionToken = response.headers.get('X-Session-Token') || response.headers.get('x-session-token');
 
     if (!response.ok) {
       throw new Error(`Server returned HTTP status ${response.status}`);
     }
 
     const data: T = await response.json();
+
+    (data as any).sessionToken = sessionToken;
+
     return data;
   } catch (error) {
     console.error('Error calling showForm API:', error);
@@ -220,11 +222,13 @@ export const getObjectRecords = async <T = any>(payload: GetObjectRecordsPayload
  */
 export const doSave = async <T = any>(payload: DoSavePayload): Promise<T> => {
   try {
-    //console.log("before doSave ", JSON.stringify(payload));
+    console.log("before doSave ", JSON.stringify(payload));
+
     const response = await fetch(SAVE_OBJECT_ENDPOINT, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-Session-Token': payload.sessionid || "",
       },
       body: JSON.stringify(payload),
     });
@@ -237,6 +241,35 @@ export const doSave = async <T = any>(payload: DoSavePayload): Promise<T> => {
     return data;
   } catch (error) {
     console.error('Error calling doSave API:', error);
+    throw error;
+  }
+};
+
+/**
+ * Tracks view intent by posting data to the /api/intent endpoint
+ * @param payload - Object containing objectid, target, operator, recordid, and value
+ */
+export const trackView = async <T = any>(payload: TrackViewPayload): Promise<T> => {
+  try {
+
+    const response = await fetch(TRACK_VIEW_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Session-Token': payload.sessionid || "",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.status) {
+      throw new Error(`Server returned HTTP status ${response.status}`);
+    }
+
+    const data: T = await response.json();
+
+    return data;
+  } catch (error) {
+    console.error('Error calling trackView API:', error);
     throw error;
   }
 };

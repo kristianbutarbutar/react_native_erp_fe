@@ -7,7 +7,7 @@ export const COL_LIST_ENDPOINT = `${DOMAIN_QONLY_WEB()}/api/colList`;
 
 export interface ShowFormPayload {
   tableName: string;
-  src: string;
+  src?: string;
 }
 
 export interface ShowFormResult {
@@ -80,8 +80,6 @@ export async function showForm(
     }
 
     const data = await response.json();
-
-    console.log("showForm > ", sessionToken);
 
     return {
       success: true,

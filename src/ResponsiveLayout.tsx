@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import type { MenuItem } from './types';
-import { fetchAPI1, menuLoader, getTableRecords } from './apiService';
+import { menuLoader, getTableRecords } from './apiService';
 import { DEFAULT_ROW_START, DEFAULT_ROW_END, PAGE_SIZE } from './config';
 import Button from './Button';
 import type { ButtonConfig } from './Button';
@@ -517,7 +517,7 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ domainFunc }
     const loadBanner = async () => {
       try {
         const payload: APIPayload = { id: 'banner_box', sessionid: SESSION_ID };
-        await fetchAPI1(payload);
+        //await fetchAPI1(payload);
       } catch (err) {
         console.error('Error fetching Banner:', err);
       }
@@ -548,6 +548,7 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ domainFunc }
           { id: '3588f87fb5ed9b9c93b0129a37b329b1736c18f3ac5ef', title: 'App F & B' },
           { id: '0c47d73b2cfcb4487121754ed3d313c6176d0a758fa54', title: 'App Student Management System' },
           { id: '26f281b80eaa274fb0e740e32232cb3f7b77d680162d2', title: 'App Banking' },
+          { id: 'c2f4f12a-2a49-4b1c-8fea-6c0e8e90a17f', title: 'eCommerce Online' },
         ];
 
         const results = await Promise.all(

@@ -123,11 +123,13 @@ export async function updateObject(
       columns: payload.columns || [],
     };
 
+    console.log("updateObject > payload.sessionToken > ", payload.sessionToken);
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Session-Token': `${payload.sessionToken}` || "",
+        'X-Session-Token': payload.sessionToken || "",
       },
       body: JSON.stringify(apiPayload),
     });

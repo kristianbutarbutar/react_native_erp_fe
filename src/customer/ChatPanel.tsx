@@ -791,7 +791,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
           sessionid: (rssession.sessionToken ? rssession.sessionToken : "") || '',
         });
 
-        if (respond && respond.data?.id) {
+        if (respond && respond.data.id) {
           __sendMessage("file:<<<<<<" + respond.data.id + ">>>>>>");
           scrollToBottom();
         }
@@ -839,14 +839,22 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ sessionid, uid, showChatPa
         />
       )}
 
-      {/* WebSocket Connecting Progress Overlay */}
+      {/* WebSocket Connecting Progress Overlay (Clickable Backdrop to Close) */}
       {isWsConnecting && (
-        <View style={styles.uploadProgressOverlay}>
-          <View style={styles.uploadProgressBox}>
+        <TouchableOpacity
+          style={styles.uploadProgressOverlay}
+          activeOpacity={1}
+          onPress={handleClose}
+        >
+          <View
+            style={styles.uploadProgressBox}
+            // @ts-ignore
+            onClick={(e: any) => e.stopPropagation()}
+          >
             <ActivityIndicator size="large" color="#4338CA" />
             <Text style={styles.uploadProgressText}>Connecting to chat server...</Text>
           </View>
-        </View>
+        </TouchableOpacity>
       )}
 
       {isUploading && (

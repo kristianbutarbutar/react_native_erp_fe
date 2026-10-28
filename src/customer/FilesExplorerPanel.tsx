@@ -133,7 +133,7 @@ const getFileBadgeHtml = (ext: string, fileName: string) => {
   else if (lowerExt === 'sql') bg = '#16A34A';
   else if (lowerExt === 'txt') bg = '#4B5563';
 
-  const readUrl = `${FILES_URI}/api/read?fileName=${encodeURIComponent(fileName)}`; //`http://localhost:3002/api/read?fileName=${encodeURIComponent(fileName)}`;
+  const readUrl = `${FILES_URI}/api/read?fileName=${encodeURIComponent(fileName)}`;
 
   return `<a href="${readUrl}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:4px; max-width:100%; word-break:break-word;"><span style="display:inline-block; font-size:9px; font-weight:bold; padding:1px 4px; border-radius:2px; background:${bg}; color:#fff; text-transform:uppercase; flex-shrink:0;">${ext}</span><span style="overflow-wrap:break-word; word-break:break-word; color:#4F46E5; text-decoration:underline;">${fileName}</span></a>`;
 };
@@ -315,6 +315,7 @@ export const FilesExplorerPanel: React.FC<FilesExplorerPanelProps> = ({
             try {
               const payload = {
                 tableName: 'UPLOADED_FILES_FORM_ID',
+                sessionToken: sessionId || '',
                 sessionid: sessionId || '',
                 recordid: recordId,
                 columns: [{ col_name: targetColName, value: value }]
@@ -401,11 +402,11 @@ export const FilesExplorerPanel: React.FC<FilesExplorerPanelProps> = ({
             if (['pdf', 'html', 'txt', 'jpg', 'png', 'jpeg', 'sql'].includes(ext)) {
               cell.innerHTML = getFileBadgeHtml(ext, fileName);
             } else {
-              const readUrl = `http://localhost:3002/api/read?fileName=${encodeURIComponent(fileName)}`;
+              const readUrl = `/api/read?fileName=${encodeURIComponent(fileName)}`;
               cell.innerHTML = `<a href="${readUrl}" target="_blank" rel="noopener noreferrer" style="color:#4F46E5; text-decoration:underline;">${fileName}</a>`;
             }
           } else if (fileName) {
-            const readUrl = `http://localhost:3002/api/read?fileName=${encodeURIComponent(fileName)}`;
+            const readUrl = `/api/read?fileName=${encodeURIComponent(fileName)}`;
             cell.innerHTML = `<a href="${readUrl}" target="_blank" rel="noopener noreferrer" style="color:#4F46E5; text-decoration:underline;">${fileName}</a>`;
           }
         }

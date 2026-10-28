@@ -39,6 +39,7 @@ export interface NewPanelProps {
   tableName?: string;
   sessionId?: string;
   parentid?: string;
+  columnForLayout?:number;
   children?: React.ReactNode;
 }
 
@@ -166,6 +167,7 @@ export const NewPanel: React.FC<NewPanelProps> = ({
   tableName = '',
   sessionId = '',
   parentid = '',
+  columnForLayout,
   children,
 }) => {
   const { width } = useWindowDimensions();
@@ -190,6 +192,16 @@ export const NewPanel: React.FC<NewPanelProps> = ({
 
   // Close on Escape key press
   useEffect(() => {
+    if(columnForLayout && columnForLayout >= 1)
+      {
+        if(columnForLayout ===1 ){
+          let nextStep: 1 | 2 = 1;
+          setColumnLayout(nextStep);
+        } else if(columnForLayout ===2 ){
+          let nextStep: 1 | 2 = 2;
+          setColumnLayout(nextStep);
+        }
+      }
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (activeDropdownCol) {
@@ -344,9 +356,7 @@ export const NewPanel: React.FC<NewPanelProps> = ({
       const response = await getList({ col_id: colId, sessionid: sessionId || '' });
 
       if (response) {
-        const items = Array.isArray(response)
-          ? response
-          : response.data || response.rows || [];
+        const items = Array.isArray(response) ? response : response.data;
         setDropdownOptions(items);
       }
     } catch (err) {

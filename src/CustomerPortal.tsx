@@ -355,7 +355,9 @@ export default function CustomerPortal({
     }, [translateAnim, opacityAnim]);
 
     const handleMenuPress = (id: string) => {
-        if (id === 'management') {
+        if (id === 'pos') {
+            domainFunc('commerce');
+        } else if (id === 'management') {
             domainFunc('management');
         } else if (id === 'call') {
             setShowContactModal(true);
@@ -367,6 +369,7 @@ export default function CustomerPortal({
 
     const topLeftMenu = [
         { id: 'flag', type: 'image', label: 'ID', uri: 'https://flagcdn.com/w20/id.png' },
+        { id: 'pos', type: 'text', icon: '🛒', label: 'POS' },
         { id: 'management', type: 'text', icon: '⚙️', label: 'Demo' },
         { id: 'call', type: 'text', icon: '📞', label: 'Call' },
         { id: 'chat', type: 'text', icon: '💬', label: 'Chat' },

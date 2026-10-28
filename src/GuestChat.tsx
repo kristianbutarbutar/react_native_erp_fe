@@ -317,9 +317,7 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
     isConnectingRef.current = true;
     setIsWsConnecting(true);
 
-    //const __uri = `ws://${window.location.host}/ws?uid=${activeUID}`;
     const __uri = `${WS_URI}/ws?uid=${activeUID}`;
-    //const ws = new WebSocket(`${WS_URI}/ws?uid=${activeUID}`);
     const ws = new WebSocket(__uri);
 
     wsRef.current = ws;
@@ -615,25 +613,21 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
     if (!selectedFiles || selectedFiles.length === 0) return;
 
     setIsUploading(true);
-
+    
     const rssession = await showForm({ tableName: "fdeb98a5-9217-482a-9f2d-051ebe5b7c59", src: `https://amgreat.id` });
     setSessionToken(rssession.sessionToken ? rssession.sessionToken : "");
 
-    console.log("rssession > ", (rssession.sessionToken ? rssession.sessionToken : ""));
-
     try {
       if (rssession.success && rssession.data) {
-
         const respond = await doUpload({
           files: selectedFiles,
           sessionid: (rssession.sessionToken ? rssession.sessionToken : "") || '',
         });
 
-        if (respond && respond.data?.id) {
+        if (respond && respond.data.id) {
           __sendMessage("file:<<<<<<" + respond.data.id + ">>>>>>");
           scrollToBottom();
         }
-
       }
     } catch (error) {
       console.error('File upload failed:', error);
@@ -694,13 +688,22 @@ export const GuestChat: React.FC<GuestChatProps> = ({ sessionid, uid = 'guest', 
         </TouchableOpacity>
       </View>
 
+      {/* Connection progress overlay - allows clicking anywhere on overlay to close chat */}
       {isWsConnecting && (
-        <View style={styles.uploadProgressOverlay}>
-          <View style={styles.uploadProgressBox}>
+        <TouchableOpacity
+          style={styles.uploadProgressOverlay}
+          activeOpacity={1}
+          onPress={handleClose}
+        >
+          <View
+            style={styles.uploadProgressBox}
+            // @ts-ignore - prevents backdrop close when clicking directly inside box
+            onClick={(e: any) => e.stopPropagation()}
+          >
             <ActivityIndicator size="large" color="#4338CA" />
             <Text style={styles.uploadProgressText}>Connecting to chat server...</Text>
           </View>
-        </View>
+        </TouchableOpacity>
       )}
 
       {isUploading && (
@@ -1082,13 +1085,16 @@ const styles = StyleSheet.create({
     borderRadius: 0,
   },
   uploadProgressOverlay: {
-    position: 'absolute',
+    // @ts-ignore
+    position: 'fixed',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    width: '100vw' as any,
+    height: '100vh' as any,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    zIndex: 99999,
+    zIndex: 99999999,
     justifyContent: 'center',
     alignItems: 'center',
   },

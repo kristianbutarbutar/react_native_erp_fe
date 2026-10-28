@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import ResponsiveLayout from './ResponsiveLayout';
 import CustomerPortal from './CustomerPortal';
 import './styles.css';
+import EcommercePanel from './EcommercePanel';
 
 function App() {
   // Initialize with a default domain (e.g., 'customer portal' or 'management')
   const [domain, setDomain] = useState<string>('customer portal');
   const [isCustomerPortal, setIsCustomerPortal] = useState<boolean>(true);
   const [isManagement, setIsManagement] = useState<boolean>(false);
+  const [isCommerce, setIsCommerce] = useState<boolean>(false);
 
   // Unified domain change handler
   const changeUIDomain = (dm: string) => {
@@ -19,8 +21,14 @@ function App() {
     if (domain === 'customer portal') {
       setIsCustomerPortal(true);
       setIsManagement(false);
+      setIsCommerce(false);
     } else if (domain === 'management') {
       setIsManagement(true);
+      setIsCustomerPortal(false);
+      setIsCommerce(false);
+    } else if (domain === 'commerce') {
+      setIsCommerce(true);
+      setIsManagement(false);
       setIsCustomerPortal(false);
     }
   }, [domain]);
@@ -32,6 +40,9 @@ function App() {
       )}
       {isCustomerPortal && (
         <CustomerPortal domainFunc={changeUIDomain} subdomain="portal" domain="amgreat.id" />
+      )}
+      {isCommerce && (
+        <EcommercePanel domainFunc={changeUIDomain} subdomain="portal" domain="amgreat.id" />
       )}
     </div>
   );
