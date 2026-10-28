@@ -7,6 +7,7 @@ const API_BASE_CALL_URL = `${BASE_URL}/callio`;//`${BASE_URL}:3006`;
 const API_FILES_URL = '';//`${BASE_URL}:3006`;
 const TOUID_AGENT = '4f82224a71503071459d1ffa1e1ea16ab11b20c17e1fb';
 const WS_CHAT = "ws://localhost:5173";
+const REVIEW_PANEL = '93cac5e4-f5dd-448a-9330-486dc63e19f3';
 
 export const DOMAIN_TOUID_AGENT = () => {
     return TOUID_AGENT;
@@ -38,4 +39,8 @@ export const DOMAIN_CALL_WEB = () => {
 
 export const DOMAIN_WS_CHAT = () => {
     return WS_CHAT;
+}
+
+export const REVIEW_PANEL_DM = () => {
+    return REVIEW_PANEL;
 }

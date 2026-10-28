@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { getObjectRecords } from './../apiService';
 import NewPanel from './../panel/NewPanel';
+import { REVIEW_PANEL_DM } from './../global';
 
 export interface ReviewPanelProps {
   objectid: string;
@@ -318,7 +319,7 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ objectid, pid }) => {
             onClick={(e: any) => e && typeof e.stopPropagation === 'function' && e.stopPropagation()}
           >
             <NewPanel
-              tableName={objectid}
+              tableName={REVIEW_PANEL_DM()}
               columnForLayout = {1}
               parentid={modalPid}
               title={modalTitle}

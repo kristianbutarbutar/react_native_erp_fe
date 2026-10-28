@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { getObjectRecords } from './../apiService';
 import ReviewPanel from './ReviewPanel';
+import { REVIEW_PANEL_DM } from './../global';
 
 export interface ProductDetailProps {
   merchantid?: string;
@@ -635,7 +636,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               <View style={styles.fieldsetBody}>
                 <View style={styles.reviewPanelWrapper}>
                   <ReviewPanel
-                    objectid="ad1bb5f179b7a0f8"
+                    objectid={REVIEW_PANEL_DM()}
                     pid={recordid}
                   />
                 </View>
