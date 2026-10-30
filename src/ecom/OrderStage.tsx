@@ -133,7 +133,7 @@ export const OrderStage: React.FC<OrderStageProps> = ({
             }
             if (cartOrder.phoneNo) setPhoneNo(cartOrder.phoneNo);
             if (cartOrder.city) setCity(cartOrder.city);
-            if (cartOrder.postalCode) setPostalCode(cartOrder.postalCode);//formatIDRCurrency
+            if (cartOrder.postalCode) setPostalCode(cartOrder.postalCode);
         }
     }, [cartOrder, isEditingCart]);
 

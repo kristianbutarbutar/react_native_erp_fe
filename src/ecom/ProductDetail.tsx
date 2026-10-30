@@ -13,7 +13,7 @@ import {
 import { getObjectRecords } from './../apiService';
 import ReviewPanel from './ReviewPanel';
 import OrderStage from './OrderStage';
-import { REVIEW_PANEL_DM } from './../global';
+import { REVIEW_PANEL, EC_HTML_CONTENT } from './../global';
 
 export interface ProductDetailProps {
   merchantid?: string;
@@ -174,7 +174,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
     try {
       const specResponse = await getObjectRecords({
-        objectid: 'c5ad252b-81eb-410e-b506-bbcc194ed64c',
+        objectid: EC_HTML_CONTENT,
         whereClause: [{ col_name: 'pid', value: prodId }],
         filterColumns: ['content'],
         sessionid,
@@ -630,7 +630,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               <View style={styles.fieldsetBody}>
                 <View style={styles.reviewPanelWrapper}>
                   <ReviewPanel
-                    objectid={REVIEW_PANEL_DM()}
+                    objectid={REVIEW_PANEL}
                     pid={recordid}
                   />
                 </View>

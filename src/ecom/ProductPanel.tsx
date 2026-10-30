@@ -626,7 +626,7 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
         <View style={styles.modalOverlay}>
           <ProductDetail
             recordid={selectedProduct?.id}
-            objectid="ad1bb5f179b7a0f8"
+            objectid={TRACK_VIEW_LOVE_OBJECT_ID}
             merchantid={extractMerchantId(selectedProduct?.pid)}
             sessionid={sessionid}
             onClose={handleCloseDetail}
