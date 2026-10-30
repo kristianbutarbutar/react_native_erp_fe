@@ -122,7 +122,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           error: record ? null : 'No product details found.',
         });
       } catch (err: any) {
-        console.error('[ProductDetail] Error fetching product info:', err);
+        console.error('[ProductDetail] Error fetching product info : ', err);
         setProductState({
           data: null,
           columns: [],
