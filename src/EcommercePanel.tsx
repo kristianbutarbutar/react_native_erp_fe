@@ -76,7 +76,7 @@ export const EcommercePanel: React.FC<EcommercePanelProps> = ({ domainFunc, subd
     setLoadingCart(true);
     try {
       const cookies = getCookies({ attribute: ['public-client'] });
-      const publicClient = cookies['public-client'] || cookies['__public_client'] || '';
+      const publicClient = cookies['public-client'] || cookies['public_client'] || '';
 
       if (!publicClient) {
         setCartRecords([]);

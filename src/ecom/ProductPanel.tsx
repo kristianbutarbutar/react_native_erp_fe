@@ -13,10 +13,10 @@ import {
 } from 'react-native';
 import { getObjectRecords, trackView, showForm } from './../apiService';
 import ProductDetail from './ProductDetail';
-import { TRACK_VIEW_LOVE_OBJECT_ID, TRACK_VIEW_SHARE_OBJECT_ID } from './../global';
+import { TRACK_VIEW_LOVE_OBJECT_ID, TRACK_VIEW_SHARE_OBJECT_ID, CHART_OBJECT_ID } from './../global';
 import { clientInfo, loadCookies } from './ts/public';
 
-const CHART_OBJECT_ID = 'd62c95b6-669a-422b-b9ba-a73a2b9fbc82';
+//const CHART_OBJECT_ID = 'd62c95b6-669a-422b-b9ba-a73a2b9fbc82';
 
 const productPanelAnimationStyles = `
   @keyframes iconBlinkAnim {
@@ -416,7 +416,7 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
     }
 
     const payload = {
-      objectid: 'ad1bb5f179b7a0f8',
+      objectid: TRACK_VIEW_LOVE_OBJECT_ID,
       whereClause,
       filterColumns: [],
       sessionid,
