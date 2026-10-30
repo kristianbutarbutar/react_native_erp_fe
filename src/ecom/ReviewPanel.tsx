@@ -115,8 +115,7 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ objectid, pid }) => {
       try {
         const childPayload = {
           objectid: REVIEW_PANEL,
-          whereClause: [{ col_name: 'pid', value: parent.id }],
-          filterColumns:[]
+          whereClause: [{ col_name: 'pid', value: parent.id }],filterColumns:[]
         };
 
         const childResponse = await getObjectRecords(childPayload);
