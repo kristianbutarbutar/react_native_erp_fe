@@ -14,7 +14,8 @@ import { getObjectRecords } from './apiService';
 import { CHART_OBJECT_ID } from './global';
 import { getCookies, formatIDRCurrency } from './ecom/ts/public';
 import { dropItem } from './panel/ts/Derado';
-import OrderStage from './ecom/OrderStage'; // <-- Imported OrderStage component
+import OrderStage from './ecom/OrderStage';
+import GuestChat from './GuestChat'; // <--- Imported GuestChat component from CustomerPortal logic
 
 // --- Color Palette Constants (60-30-10 Rule) ---
 const PALETTE = {
@@ -30,6 +31,7 @@ interface EcommercePanelProps {
   subdomain?: string;
   domain?: string;
   domainFunc: (dm: string) => void;
+  sessionid?: string; // <--- Optional sessionid prop for GuestChat
 }
 
 interface CartRecord {
@@ -40,7 +42,7 @@ interface CartRecord {
   [key: string]: any;
 }
 
-export const EcommercePanel: React.FC<EcommercePanelProps> = ({ domainFunc, subdomain, domain }) => {
+export const EcommercePanel: React.FC<EcommercePanelProps> = ({ domainFunc, subdomain, domain, sessionid }) => {
   const { width, height } = useWindowDimensions();
   const isDesktop = width >= 768;
 
@@ -61,6 +63,9 @@ export const EcommercePanel: React.FC<EcommercePanelProps> = ({ domainFunc, subd
   // OrderStage Edit Cart State
   const [cartOrderRecord, setCartOrderRecord] = useState<CartRecord | null>(null);
   const [loadingEditRecord, setLoadingEditRecord] = useState<boolean>(false);
+
+  // GuestChat Modal State (Copied from CustomerPortal.tsx logic)
+  const [showGuestChatModal, setShowGuestChatModal] = useState<boolean>(false);
 
   // Dynamic contrast colors depending on selected theme
   const isDarkTheme = themeColor === PALETTE.blue;
@@ -346,7 +351,11 @@ export const EcommercePanel: React.FC<EcommercePanelProps> = ({ domainFunc, subd
             {isDesktop && <Text style={[styles.menuText, { color: textColor }]}>Me</Text>}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem}>
+          {/* Chat Icon Menu Trigger (Mirrored from CustomerPortal.tsx) */}
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => setShowGuestChatModal(true)}
+          >
             <Text style={styles.menuIcon}>💬</Text>
             {isDesktop && <Text style={[styles.menuText, { color: textColor }]}>Chat</Text>}
           </TouchableOpacity>
@@ -365,7 +374,6 @@ export const EcommercePanel: React.FC<EcommercePanelProps> = ({ domainFunc, subd
         {isDesktop && <View style={[styles.contentBoxLeft, { backgroundColor: PALETTE.white }]} />}
 
         <View style={[styles.contentBox, !isDesktop && styles.fullWidth, { backgroundColor: PALETTE.white }]}>
-          {/* Passed fetchCartRecords down as onChartPress to ProductPanel */}
           <ProductPanel onChartPress={fetchCartRecords} />
         </View>
 
@@ -389,6 +397,24 @@ export const EcommercePanel: React.FC<EcommercePanelProps> = ({ domainFunc, subd
                 setCartOrderRecord(null);
                 fetchCartRecords(); // Refresh cart upon closing editor
               }}
+            />
+          </View>
+        </View>
+      )}
+
+      {/* Guest Chat Modal Overlay (Mirrored from CustomerPortal.tsx) */}
+      {showGuestChatModal && (
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={styles.modalBackdropTouch}
+            activeOpacity={1}
+            onPress={() => setShowGuestChatModal(false)}
+          />
+          <View style={styles.modalContentWrapper}>
+            <GuestChat
+              sessionid={sessionid || ''}
+              uid="guest"
+              onClose={() => setShowGuestChatModal(false)}
             />
           </View>
         </View>
@@ -704,6 +730,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 99999,
     padding: 16,
+  },
+  modalBackdropTouch: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  modalContentWrapper: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    zIndex: 1001,
   },
   modalContainer: {
     width: '100%',
