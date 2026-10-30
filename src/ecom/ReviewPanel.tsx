@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { getObjectRecords } from './../apiService';
 import NewPanel from './../panel/NewPanel';
-import { REVIEW_PANEL_DM } from './../global';
+import { REVIEW_PANEL} from './../global';
 
 export interface ReviewPanelProps {
   objectid: string;
@@ -114,8 +114,9 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ objectid, pid }) => {
 
       try {
         const childPayload = {
-          objectid: '93cac5e4-f5dd-448a-9330-486dc63e19f3',
+          objectid: REVIEW_PANEL,
           whereClause: [{ col_name: 'pid', value: parent.id }],
+          filterColumns:[]
         };
 
         const childResponse = await getObjectRecords(childPayload);
@@ -319,7 +320,7 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ objectid, pid }) => {
             onClick={(e: any) => e && typeof e.stopPropagation === 'function' && e.stopPropagation()}
           >
             <NewPanel
-              tableName={REVIEW_PANEL_DM()}
+              tableName={REVIEW_PANEL}
               columnForLayout = {1}
               parentid={modalPid}
               title={modalTitle}
