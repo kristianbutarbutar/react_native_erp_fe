@@ -1,5 +1,6 @@
 // panel/ts/NewPanel.ts
 import { DOMAIN_WEB, DOMAIN_QONLY_WEB } from '../../global';
+import { getCookies } from './../../ecom/ts/public'; // Adjust relative path as needed
 
 export const GET_OBJECT_SCHEMA_ENDPOINT = `${DOMAIN_QONLY_WEB()}/api/get-object-schema`;
 export const CREATE_OBJECT_ENDPOINT = `${DOMAIN_WEB()}/api/save-object`;
@@ -119,11 +120,16 @@ export async function createForm(
       sessionId: payload.sessionId || '',
     };
 
+    // Retrieve public-client cookie value
+    const cookies = getCookies({ attribute: ['public-client'] });
+    const publicClientValue = cookies['public-client'] || '';
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Session-Token': `${payload.sessionToken}` || "",
+        'X-Session-Token': payload.sessionToken || "",
+        'X-Public-Client': publicClientValue,
       },
       body: JSON.stringify(apiPayload),
     });
@@ -134,6 +140,7 @@ export async function createForm(
     }
 
     const data = await response.json();
+    
     return {
       success: true,
       data,

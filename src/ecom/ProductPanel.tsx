@@ -13,12 +13,11 @@ import {
 } from 'react-native';
 import { getObjectRecords, trackView, showForm } from './../apiService';
 import ProductDetail from './ProductDetail';
+import { TRACK_VIEW_LOVE_OBJECT_ID, TRACK_VIEW_SHARE_OBJECT_ID } from './../global';
+import { clientInfo, loadCookies } from './ts/public';
 
-// Configurable target object IDs
-export const TRACK_VIEW_LOVE_OBJECT_ID = 'ad1bb5f179b7a0f8';
-export const TRACK_VIEW_SHARE_OBJECT_ID = 'ad1bb5f179b7a0f8';
+const CHART_OBJECT_ID = 'd62c95b6-669a-422b-b9ba-a73a2b9fbc82';
 
-// Inject CSS Keyframe Animation Styles
 const productPanelAnimationStyles = `
   @keyframes iconBlinkAnim {
     0% {
@@ -40,7 +39,6 @@ const productPanelAnimationStyles = `
   }
 `;
 
-// --- Data Interface ---
 export interface ProductItem {
   id: string;
   pid?: string;
@@ -55,20 +53,19 @@ export interface ProductItem {
   [key: string]: any;
 }
 
-// --- Component Props Interface ---
 export interface ProductPanelProps {
   sessionid?: string;
   category?: string;
   subcategory?: string;
   shareObjectId?: string;
   loveObjectId?: string;
-  desktopProductsPerLine?: number; // Configurable column count for desktop (default: 3)
-  mobileProductsPerLine?: number;  // Configurable column count for mobile (default: 1)
+  desktopProductsPerLine?: number;
+  mobileProductsPerLine?: number;
   onDetailPress?: (item: ProductItem) => void;
   onOrderPress?: (item: ProductItem) => void;
+  onChartPress?: () => void;
 }
 
-// Sub-component for individual product photo box
 const ProductPhotoBox: React.FC<{
   item: ProductItem;
   sessionid?: string;
@@ -80,8 +77,7 @@ const ProductPhotoBox: React.FC<{
   const [hasFetched, setHasFetched] = useState<boolean>(false);
   const [activeIndex, setActiveIndex] = useState<number>(0);
   const [boxWidth, setBoxWidth] = useState<number>(0);
-  const [sessionToken, setSessionToken] = useState<string>('');
-  
+
   const [loveQty, setLoveQty] = useState<number>(item.love_qty ?? 0);
   const [shareQty, setShareQty] = useState<number>(item.share_qty ?? 0);
   const [isHovered, setIsHovered] = useState<boolean>(false);
@@ -163,7 +159,6 @@ const ProductPhotoBox: React.FC<{
   const handleLoveClick = async () => {
     try {
       const schemaResult = await showForm({ objectid: loveObjectId, src: "https://amgreat.id" });
-      setSessionToken(schemaResult.sessionToken ? schemaResult.sessionToken : "");
 
       const response = await trackView({
         objectid: loveObjectId,
@@ -185,7 +180,6 @@ const ProductPhotoBox: React.FC<{
   const handleShareClick = async () => {
     try {
       const schemaResult = await showForm({ objectid: loveObjectId, src: "https://amgreat.id" });
-      setSessionToken(schemaResult.sessionToken ? schemaResult.sessionToken : "");
 
       const response = await trackView({
         objectid: shareObjectId,
@@ -234,23 +228,16 @@ const ProductPhotoBox: React.FC<{
       onMouseLeave={() => setIsHovered(false)}
     >
       <View ref={containerRef} style={styles.photoContainer} onLayout={handleLayout}>
-        {/* Photo Top Overlay Controls */}
         <View style={styles.photoTopOverlay}>
           <View />
           <View style={styles.actionsRight}>
-            <TouchableOpacity 
-              style={styles.iconBtn} 
-              onPress={handleLoveClick}
-            >
+            <TouchableOpacity style={styles.iconBtn} onPress={handleLoveClick}>
               <Text style={styles.iconQtyText}>{loveQty}</Text>
               <div className={isHovered ? 'hover-blink-active' : ''} style={{ display: 'inline-block' }}>
                 <Text style={styles.actionIcon}>❤️</Text>
               </div>
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.iconBtn} 
-              onPress={handleShareClick}
-            >
+            <TouchableOpacity style={styles.iconBtn} onPress={handleShareClick}>
               <Text style={styles.iconQtyText}>{shareQty}</Text>
               <div className={isHovered ? 'hover-blink-active' : ''} style={{ display: 'inline-block' }}>
                 <Text style={styles.actionIcon}>🔗</Text>
@@ -259,7 +246,6 @@ const ProductPhotoBox: React.FC<{
           </View>
         </View>
 
-        {/* Main Photo Content / Carousel Area */}
         <View style={styles.photoPlaceholder}>
           {loadingPhotos ? (
             <View style={styles.loadingPhotoContainer}>
@@ -289,7 +275,6 @@ const ProductPhotoBox: React.FC<{
           )}
         </View>
 
-        {/* Carousel Arrows */}
         {photos.length > 1 && (
           <View style={styles.carouselArrowsOverlay}>
             <TouchableOpacity
@@ -309,7 +294,6 @@ const ProductPhotoBox: React.FC<{
           </View>
         )}
 
-        {/* Pagination Dots */}
         <View style={styles.paginationDots}>
           {photos.length > 0 ? (
             <Text style={styles.dotsText}>
@@ -334,6 +318,7 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
   mobileProductsPerLine = 1,
   onDetailPress,
   onOrderPress,
+  onChartPress,
 }) => {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
@@ -342,18 +327,80 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Ref flag to ensure loadCookies executes ONLY ONCE
+  const cookiesLoadedRef = useRef<boolean>(false);
+
+  // Chart badge state
+  const [chartCount, setChartCount] = useState<number>(0);
+
   // Modal / Detail state
   const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
 
-  // Calculate items per line based on screen dimension
+  // Centered Alert Modal State
+  const [alertState, setAlertState] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
+
   const itemsPerLine = isDesktop ? desktopProductsPerLine : mobileProductsPerLine;
   const gridGap = 12;
   const computedCardWidth = `calc((100% - ${gridGap * (itemsPerLine - 1)}px) / ${itemsPerLine})`;
 
   useEffect(() => {
+    // Guard against double execution
+    if (!cookiesLoadedRef.current) {
+      cookiesLoadedRef.current = true;
+      initCookies();
+    }
     loadProducts();
+    updateChartCount();
   }, [category, subcategory]);
+
+  const initCookies = async () => {
+    try {
+      await loadCookies();
+    } catch (err: any) {
+      console.error('[ProductPanel] Error loading cookies:', err);
+      showAlert('Notice', err?.message || 'Cookie initialization required.');
+    }
+  };
+
+  const showAlert = (title: string, message: string) => {
+    setAlertState({
+      visible: true,
+      title,
+      message,
+    });
+  };
+
+  const updateChartCount = async () => {
+    try {
+      const client = await clientInfo();
+      const payload = {
+        objectid: CHART_OBJECT_ID,
+        whereClause: [{ col_name: 'createdby', value: client }],
+        filterColumns: ['id'],
+        sessionid,
+      };
+
+      const response = await getObjectRecords(payload);
+      const records = Array.isArray(response) ? response : response?.data;
+
+      if (Array.isArray(records)) {
+        setChartCount(records.length);
+      } else {
+        setChartCount(0);
+      }
+    } catch (err) {
+      console.error('[ProductPanel] Error updating chart count:', err);
+    }
+  };
 
   const loadProducts = async () => {
     setLoading(true);
@@ -405,6 +452,9 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
   const handleCloseDetail = () => {
     setIsDetailOpen(false);
     setSelectedProduct(null);
+    if(onChartPress){
+        onChartPress();
+    }
   };
 
   const formatCategory = (categoryRaw?: string) => {
@@ -425,7 +475,6 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
     return sellerRaw;
   };
 
-  // Format price and replace '$' with 'IDR'
   const formatPrice = (priceVal?: number | string) => {
     if (priceVal === undefined || priceVal === null || priceVal === '') {
       return 'Price';
@@ -442,7 +491,6 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
     return valStr;
   };
 
-  // Extract text inside brackets [...] if available; otherwise return raw string.
   const extractMerchantId = (rawPid?: string) => {
     if (!rawPid || rawPid.trim() === '') return '';
     const match = rawPid.match(/\[(.*?)\]/);
@@ -494,7 +542,6 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
                   { width: computedCardWidth as any }
                 ]}
               >
-                {/* Product Photo Container */}
                 <View style={styles.relativeBox}>
                   <ProductPhotoBox
                     item={item}
@@ -512,9 +559,7 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
                   )}
                 </View>
 
-                {/* Product Info Section */}
                 <View style={styles.infoContainer}>
-                  {/* Product Name Line 1 & Price */}
                   <View style={styles.rowLine1}>
                     <View style={styles.name1Container}>
                       <Text style={styles.name1Text} numberOfLines={1}>
@@ -528,14 +573,12 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
                     </View>
                   </View>
 
-                  {/* Product Name Line 2 */}
                   <View style={styles.rowLine2}>
                     <Text style={styles.name2Text} numberOfLines={1}>
                       {item.name_2 || 'Product Name line 2'}
                     </Text>
                   </View>
 
-                  {/* Rating Stars & Sold Quantity with Detail & Order buttons */}
                   <View style={styles.rowRatingSold}>
                     <Text style={styles.starText}>☆☆☆☆☆</Text>
                     <View style={styles.actionButtonsGroup}>
@@ -559,7 +602,6 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
                     </View>
                   </View>
 
-                  {/* Seller Name */}
                   {sellerDisplay && (
                     <View style={styles.rowSeller}>
                       <Text style={styles.sellerText} numberOfLines={1}>
@@ -574,7 +616,7 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
         </View>
       </ScrollView>
 
-      {/* Topmost Modal Overlay for ProductDetail */}
+      {/* ProductDetail Overlay Modal */}
       <Modal
         visible={isDetailOpen}
         animationType="fade"
@@ -591,15 +633,70 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
           />
         </View>
       </Modal>
+
+      {/* Professional Centered Cookie/Alert Modal Overlay */}
+      {alertState.visible && (
+        <View style={styles.centerAlertOverlay}>
+          <View style={styles.alertBox}>
+            <Text style={styles.alertTitle}>{alertState.title}</Text>
+            <Text style={styles.alertMessage}>{alertState.message}</Text>
+            <TouchableOpacity
+              style={styles.alertOkBtn}
+              onPress={() => setAlertState((prev) => ({ ...prev, visible: false }))}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.alertOkBtnText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
 
-// --- Styles ---
 const styles = StyleSheet.create({
   rootContainer: {
     flex: 1,
     position: 'relative',
+  },
+  topHeaderBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  chartIconBtn: {
+    position: 'relative',
+    padding: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chartIconText: {
+    fontSize: 22,
+  },
+  chartBadgeCircle: {
+    position: 'absolute',
+    top: 2,
+    right: 0,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
+  chartBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   container: {
     flex: 1,
@@ -637,14 +734,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 
-  // --- Grid Layout ---
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'stretch',
   },
 
-  // --- Card Styling ---
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
@@ -661,7 +756,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 
-  // --- Photo Section ---
   photoContainer: {
     aspectRatio: 1,
     width: '100%',
@@ -784,7 +878,6 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
 
-  // --- Info Section ---
   infoContainer: {
     gap: 6,
   },
@@ -889,7 +982,6 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
 
-  // --- Modal Overlay Styling (Topmost Browser View) ---
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
@@ -899,6 +991,59 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 99999,
+  },
+
+  // Centered Professional Alert Box
+  centerAlertOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    zIndex: 100000,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  alertBox: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  alertTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  alertMessage: {
+    fontSize: 13,
+    color: '#475569',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 18,
+  },
+  alertOkBtn: {
+    width: '100%',
+    backgroundColor: '#1E293B',
+    paddingVertical: 9,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  alertOkBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 13,
   },
 });
 

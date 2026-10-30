@@ -168,7 +168,7 @@ export async function readFileByPID(params: ReadFileByPidParams): Promise<any> {
 export async function fetchHtmlStream(params: FetchHtmlStreamParams): Promise<string | null> {
   try {
     const queryResult = await readFileByPID(params);
-    console.log("fetchHtmlStream > queryResult > ", JSON.stringify(queryResult));
+
     if (!queryResult || !queryResult.data || !queryResult.data[0]) {
       console.warn('fetchHtmlStream: Record not found via PID query.');
       return null;

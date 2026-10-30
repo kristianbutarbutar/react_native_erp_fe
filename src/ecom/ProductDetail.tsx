@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { getObjectRecords } from './../apiService';
 import ReviewPanel from './ReviewPanel';
+import OrderStage from './OrderStage';
 import { REVIEW_PANEL_DM } from './../global';
 
 export interface ProductDetailProps {
@@ -57,6 +58,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const [isReviewInfoOpen, setIsReviewInfoOpen] = useState<boolean>(true);
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
 
+  const [showOrderStage, setShowOrderStage] = useState<boolean>(false);
+
   const [productState, setProductState] = useState<FetchState>({
     data: null,
     columns: [],
@@ -71,13 +74,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     error: null,
   });
 
-  // Photo carousel state
   const [photos, setPhotos] = useState<string[]>([]);
   const [loadingPhotos, setLoadingPhotos] = useState<boolean>(false);
   const [activeIndex, setActiveIndex] = useState<number>(0);
   const [photoBoxWidth, setPhotoBoxWidth] = useState<number>(0);
 
-  // Specification HTML content state
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [loadingHtml, setLoadingHtml] = useState<boolean>(false);
 
@@ -165,7 +166,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     }
   };
 
-  // Fetch HTML Specification Content
   const fetchProductSpecificationHtml = async (prodId: string) => {
     if (!prodId) return;
 
@@ -218,7 +218,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     }
   };
 
-  // Fetch product photos logic
   const fetchPhotos = async (fileGroupId: string) => {
     if (!fileGroupId) return;
 
@@ -284,6 +283,13 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     if (onExpandToggle) onExpandToggle();
   };
 
+  const handleOrderClick = () => {
+    setShowOrderStage(true);
+    if (onOrderPress) {
+      onOrderPress(recordid);
+    }
+  };
+
   const formatFieldValue = (keyName: string, val: any) => {
     if (val === undefined || val === null) return '';
     let valStr = String(val);
@@ -308,7 +314,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     return valStr;
   };
 
-  // Construct Header Title: Product Name - Price (Truncated if > 100 chars)
   const getTopHeaderTitle = () => {
     if (!productState.data) return '';
 
@@ -405,13 +410,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         isFullScreen && styles.fullScreenContainer,
       ]}
     >
-      {/* Top Header Controls Bar */}
       <View style={styles.topHeaderControl}>
         <TouchableOpacity style={styles.headerIconBtn} onPress={toggleExpand}>
           <Text style={styles.headerIconText}>{isFullScreen ? '⤓' : '⤢'}</Text>
         </TouchableOpacity>
 
-        {/* Centered Product Name & Price Header */}
         <View style={styles.topHeaderTitleContainer}>
           <Text style={styles.topHeaderTitleText} numberOfLines={1}>
             {getTopHeaderTitle()}
@@ -429,9 +432,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.mainWrapper, isDesktop && styles.desktopMainWrapper]}>
-          {/* Top Section: Photo Box */}
           <View style={styles.topSectionCard}>
-            {/* Desktop-only Badges (Sold / Stocks) */}
             {isDesktop && (
               <View style={styles.desktopStatsContainer}>
                 <View style={styles.statBadge}>
@@ -478,7 +479,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                   <Text style={styles.photoPlaceholderText}>Product Photo</Text>
                 )}
 
-                {/* Left / Right Arrow Controls */}
                 {photos.length > 1 && (
                   <View style={styles.carouselArrowsOverlay}>
                     <TouchableOpacity
@@ -502,7 +502,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 )}
               </View>
 
-              {/* Slider Dots */}
               <View style={styles.paginationDots}>
                 {photos.length > 0 ? (
                   <Text style={styles.dotsText}>
@@ -515,7 +514,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             </View>
           </View>
 
-          {/* 1st Fetch Render: Collapsible Product Detail Box */}
           <View style={styles.fieldsetCard}>
             <TouchableOpacity
               activeOpacity={0.8}
@@ -528,17 +526,15 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
             {isProductDetailOpen && (
               <View style={styles.productDetailBody}>
-                {/* Desktop Order Button (Positioned Top-Right inside Box) */}
                 {isDesktop && (
                   <TouchableOpacity
                     style={styles.desktopOrderBtn}
-                    onPress={() => onOrderPress && onOrderPress(recordid)}
+                    onPress={handleOrderClick}
                   >
                     <Text style={styles.orderBtnText}>Order</Text>
                   </TouchableOpacity>
                 )}
 
-                {/* Mobile Single-Line Action Bar (Sold, Stocks, Order) */}
                 {!isDesktop && (
                   <View style={styles.mobileActionBar}>
                     <View style={styles.statBadge}>
@@ -553,7 +549,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                     </View>
                     <TouchableOpacity
                       style={styles.mobileOrderBtn}
-                      onPress={() => onOrderPress && onOrderPress(recordid)}
+                      onPress={handleOrderClick}
                     >
                       <Text style={styles.orderBtnText}>Order</Text>
                     </TouchableOpacity>
@@ -593,7 +589,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             )}
           </View>
 
-          {/* 2nd Fetch Render: Collapsible Merchant Info */}
           <View style={styles.fieldsetCard}>
             <TouchableOpacity
               activeOpacity={0.8}
@@ -621,7 +616,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             )}
           </View>
 
-          {/* Collapsible Review Info */}
           <View style={styles.fieldsetCard}>
             <TouchableOpacity
               activeOpacity={0.8}
@@ -644,7 +638,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             )}
           </View>
 
-          {/* Other Products Recommendation */}
           <View style={styles.fieldsetCard}>
             <View style={styles.fieldsetHeader}>
               <Text style={styles.fieldsetLegendText}>Other Products Recomendation</Text>
@@ -657,6 +650,25 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           </View>
         </View>
       </ScrollView>
+
+      {/* Cascading Closure integration for OrderStage */}
+      {showOrderStage && (
+        <View style={styles.orderStageOverlay}>
+          <View style={[styles.orderStageContainer, isDesktop && styles.desktopOrderStageContainer]}>
+            <OrderStage
+              product={productState.data || { id: recordid }}
+              sessionid={sessionid}
+              onClose={() => setShowOrderStage(false)}
+              onSaveToChartSuccess={() => {
+                setShowOrderStage(false);
+                if (onClose) {
+                  onClose(); // Closes ProductDetail upon successful chart save
+                }
+              }}
+            />
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -671,6 +683,7 @@ const styles = StyleSheet.create({
     borderColor: '#DCDCDC',
     borderRadius: 8,
     overflow: 'hidden',
+    position: 'relative',
   },
   desktopFullBrowser: {
     width: '100%',
@@ -734,8 +747,6 @@ const styles = StyleSheet.create({
     maxWidth: 1000,
     alignSelf: 'center',
   },
-
-  // --- Top Section Photo Card Sizing & Alignment ---
   topSectionCard: {
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -827,8 +838,6 @@ const styles = StyleSheet.create({
     letterSpacing: 4,
     color: '#94A3B8',
   },
-
-  // --- Desktop Badges Layout ---
   desktopStatsContainer: {
     position: 'absolute',
     top: 16,
@@ -853,8 +862,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#334155',
   },
-
-  // --- Mobile Single-Line Action Bar ---
   mobileActionBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -873,8 +880,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  // --- Fieldset Card Styling ---
   fieldsetCard: {
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -958,8 +963,6 @@ const styles = StyleSheet.create({
     color: '#D9534F',
     textAlign: 'center',
   },
-
-  // --- Stacked Grid Styles ---
   fieldsGrid: {
     width: '100%',
     flexDirection: 'row',
@@ -1028,6 +1031,36 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     lineHeight: 20,
     flexWrap: 'wrap',
+  },
+  orderStageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 9999,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  orderStageContainer: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  desktopOrderStageContainer: {
+    width: 600,
+    height: 600,
+    maxHeight: '90%',
+    maxWidth: '90%',
   },
 });
 

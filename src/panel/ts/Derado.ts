@@ -1,8 +1,9 @@
 // panel/ts/Derado.ts
 import {DOMAIN_WEB} from '../../global';
+import {showForm} from './../../apiService';
 
-export const DROP_OBJECT_ENDPOINT = `${DOMAIN_WEB()}/api/drop-object`;//'http://localhost:3000/api/drop-object';
-export const DROP_ENDPOINT = `${DOMAIN_WEB()}/api/drop`;//'http://localhost:3000/api/drop';
+export const DROP_OBJECT_ENDPOINT = `${DOMAIN_WEB()}/api/drop-object`;
+export const DROP_ENDPOINT = `${DOMAIN_WEB()}/api/drop`;
 
 export interface DropItemPayload {
     tableName: string;
@@ -62,20 +63,26 @@ export async function dropItem(
     }
 
     try {
-        const apiPayload = {
+
+        const result = await showForm({ objectid: tableName, src: `https://amgreat.id` });
+
+        if ( result.success && result.sessionToken ) {
+            payload.sessionid = (result.sessionToken ? result.sessionToken : "");
+        }
+
+        const __payload = {
             tableName,
             recordid,
             sessionid: payload.sessionid || '',
         };
 
-        console.log('Call API:', endpoint, 'Payload =>', JSON.stringify(apiPayload));
-
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-Session-Token': `${__payload.sessionid}` || "",
             },
-            body: JSON.stringify(apiPayload),
+            body: JSON.stringify(__payload),
         });
 
         if (!response.ok) {
