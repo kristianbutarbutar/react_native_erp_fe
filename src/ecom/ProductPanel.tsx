@@ -211,10 +211,10 @@ const ProductPhotoBox: React.FC<{
   };
 
   return (
-    <div style={{ width: '100%' }} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+    <div style={{ width: '100%', border: '0px solid transparent' }} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
       <View
         ref={containerRef}
-        style={[styles.photoContainer, { height: isDesktop ? 280 : 160, backgroundColor: '#FFFFFF' }]} // <--- LOCKED TO STATIC WHITE (Unaffected by themeColor)
+        style={[styles.photoContainer, { height: isDesktop ? 296 : 176, backgroundColor: '#FFFFFF', borderWidth: 0, borderColor: 'transparent' }]}
         onLayout={handleLayout}
       >
         <View style={styles.photoTopOverlay}>
@@ -474,7 +474,6 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
             return (
               <View key={item.id || index} style={[styles.card, { width: computedCardWidth as any, backgroundColor: themeColor }]}>
                 <View style={styles.relativeBox}>
-                  {/* ProductPhotoBox receives NO themeColor prop, keeping its internal background static white */}
                   <ProductPhotoBox
                     item={item}
                     sessionid={sessionid}
@@ -540,7 +539,6 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
         </View>
       </ScrollView>
 
-      {/* ProductDetail Modal Overlay - Passes themeColor exclusively to outer modal container */}
       <Modal visible={isDetailOpen} animationType="fade" transparent={true} onRequestClose={handleCloseDetail}>
         <View style={styles.modalOverlay}>
           <ProductDetail
@@ -548,7 +546,7 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
             objectid={TRACK_VIEW_LOVE_OBJECT_ID}
             merchantid={extractMerchantId(selectedProduct?.pid)}
             sessionid={sessionid}
-            themeColor={themeColor} // <--- Passed only to outer modal root
+            themeColor={themeColor}
             onClose={handleCloseDetail}
           />
         </View>
@@ -579,10 +577,11 @@ const styles = StyleSheet.create({
   retryBtn: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#4A6984', borderRadius: 4 },
   retryBtnText: { color: '#FFFFFF', fontWeight: '600', fontSize: 13 },
   gridContainer: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch' },
-  card: { borderRadius: 8, borderWidth: 1, borderColor: '#000000', overflow: 'hidden', padding: 8, gap: 8, marginBottom: 4, boxSizing: 'border-box' as any },
+  card: { borderRadius: 8, borderWidth: 0, borderColor: '#000000', overflow: 'hidden', padding: 8, gap: 8, marginBottom: 4, boxSizing: 'border-box' as any },
   relativeBox: { position: 'relative', width: '100%' },
-  photoContainer: { width: '100%', borderWidth: 1, borderColor: '#000000', borderRadius: 4, position: 'relative', justifyContent: 'space-between', padding: 8, overflow: 'hidden' },
-  categoryBadgeOverlay: { position: 'absolute', top: 8, left: 8, zIndex: 10, borderWidth: 1, borderColor: '#000000', paddingHorizontal: 8, paddingVertical: 3, backgroundColor: '#FFFFFF', borderRadius: 2, maxWidth: '60%' },
+  // Symmetric padding (paddingHorizontal: 8, paddingVertical: 8) ensuring equal left/right and top/bottom white margins with 0px border
+  photoContainer: { width: '100%', borderWidth: 0, borderColor: 'transparent', borderRadius: 4, position: 'relative', justifyContent: 'space-between', paddingHorizontal: 8, paddingVertical: 8, overflow: 'hidden' },
+  categoryBadgeOverlay: { position: 'absolute', top: 12, left: 12, zIndex: 10, borderWidth: 1, borderColor: '#000000', paddingHorizontal: 8, paddingVertical: 3, backgroundColor: '#FFFFFF', borderRadius: 2, maxWidth: '60%' },
   photoTopOverlay: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 5 },
   categoryText: { fontSize: 11, fontWeight: '500', color: '#000000' },
   actionsRight: { flexDirection: 'row', gap: 4 },
@@ -594,7 +593,7 @@ const styles = StyleSheet.create({
   carouselScrollView: { width: '100%', height: '100%' },
   productImg: { height: '100%' },
   photoPlaceholderText: { fontSize: 14, color: '#333333', fontWeight: '400' },
-  carouselArrowsOverlay: { position: 'absolute', top: '45%', left: 4, right: 4, flexDirection: 'row', justifyContent: 'space-between', zIndex: 6 },
+  carouselArrowsOverlay: { position: 'absolute', top: '48%', left: 4, right: 4, flexDirection: 'row', justifyContent: 'space-between', zIndex: 6 },
   arrowBtn: { backgroundColor: 'rgba(255, 255, 255, 0.85)', borderWidth: 1, borderColor: '#000000', borderRadius: 12, width: 24, height: 24, justifyContent: 'center', alignItems: 'center' },
   disabledArrow: { opacity: 0.3 },
   arrowText: { fontSize: 15, fontWeight: 'bold', color: '#000000', marginTop: -2 },
