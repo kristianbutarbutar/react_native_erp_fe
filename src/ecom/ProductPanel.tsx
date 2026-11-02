@@ -17,6 +17,8 @@ import ProductDetail from './ProductDetail';
 import { TRACK_VIEW_LOVE_OBJECT_ID, TRACK_VIEW_SHARE_OBJECT_ID, CHART_OBJECT_ID } from './../global';
 import { clientInfo, loadCookies } from './ts/public';
 
+
+
 const productPanelAnimationStyles = `
   @keyframes iconBlinkAnim {
     0% { opacity: 1; transform: scale(1); }
@@ -212,7 +214,7 @@ const ProductPhotoBox: React.FC<{
 
   return (
     <div style={{ width: '100%', border: '0px solid transparent' }} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
-      <View
+      aku<View
         ref={containerRef}
         style={[styles.photoContainer, { height: isDesktop ? 296 : 176, backgroundColor: '#FFFFFF', borderWidth: 0, borderColor: 'transparent' }]}
         onLayout={handleLayout}
