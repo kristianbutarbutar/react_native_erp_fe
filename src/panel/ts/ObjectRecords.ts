@@ -26,7 +26,7 @@ export async function tableRecords<T = any>(
             row_end: payload.row_end ?? 10,
         };
 
-        console.log('Calling tableRecords with payload:', JSON.stringify(queryParams));
+       // console.log('Calling tableRecords with payload:', JSON.stringify(queryParams));
         const response = await getTableRecords<T>(queryParams);
         return response;
     } catch (error) {

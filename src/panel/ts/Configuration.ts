@@ -110,7 +110,7 @@ export async function getTabs(
             filterColumns: ['id', 'pid', 'label', 'level', 'target_tsx', 'formid', 'icon'],
             recordid: input.recordid,
         };
-        console.log("getTabs > endpoint = ", QUERY_TABS_ENDPOINT, " Payload = ", JSON.stringify(requestPayload));
+        //console.log("getTabs > endpoint = ", QUERY_TABS_ENDPOINT, " Payload = ", JSON.stringify(requestPayload));
         const response = await fetch(QUERY_TABS_ENDPOINT, {
             method: 'POST',
             headers: {

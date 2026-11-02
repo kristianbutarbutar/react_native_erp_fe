@@ -369,8 +369,8 @@ export const NewPanel: React.FC<NewPanelProps> = ({
   const handleSelectDropdownItem = (colName: string, item: any) => {
     const key = colName.toLowerCase();
     const optLabel = item.description || item.label || item.name || '';
-    const optId = item.id || item.value || '';
-
+    const optId = item.id || item.value || item.root_menu || '';
+    
     setFormData((prev) => ({
       ...prev,
       [key]: optId,

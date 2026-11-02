@@ -12,6 +12,9 @@ export const TRACK_VIEW_LOVE_OBJECT_ID = 'ad1bb5f179b7a0f8';
 export const TRACK_VIEW_SHARE_OBJECT_ID = 'ad1bb5f179b7a0f8';
 export const CHART_OBJECT_ID = 'd62c95b6-669a-422b-b9ba-a73a2b9fbc82';
 export const EC_HTML_CONTENT = 'c5ad252b-81eb-410e-b506-bbcc194ed64c';
+export const loader_left_menu = "f17f188a-288f-4bf0-b1c2-f21731b480f6";
+//export const loader_left_menu = "727d0327-fda5-428b-a79e-104e71fa9920";
+
 export const DOMAIN_TOUID_AGENT = () => {
     return TOUID_AGENT;
 }

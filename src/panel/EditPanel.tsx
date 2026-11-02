@@ -30,6 +30,7 @@ const COMPACT_MARGIN = '1px';
 
 export interface ColumnSchema {
   id?: string;
+  root_menu?: string;
   col_name: string;
   label: string;
   html_type?: string;
@@ -413,11 +414,12 @@ export const EditPanel: React.FC<EditPanelProps> = ({
     setDropdownOptions([]);
 
     try {
-      const colId: string = col.id || col.col_name;
+      const colId: string = col.id || col.col_name ;
       const response = await getList({ col_id: colId, sessionid: sessionId || '' });
 
       if (response) {
         const items = Array.isArray(response) ? response : response.data;
+
         setDropdownOptions(items);
       }
     } catch (err) {
@@ -430,7 +432,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
   const handleSelectDropdownItem = (colName: string, item: any) => {
     const key = colName.toLowerCase();
     const optLabel = item.description || item.label || item.name || '';
-    const optId = item.id || item.value || '';
+    const optId = item.id || item.value || item.root_menu || '';
 
     setFormData((prev) => ({
       ...prev,
@@ -488,7 +490,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
     try {
       const res = await getObjectRecords({
         tableName: 'form_icons_id',
-        whereClause: [],
+        whereClause: [],filterColumns:[]
       });
 
       if (res && res.success && res.data) {
@@ -1003,7 +1005,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
                   <ScrollView style={styles.dropdownScroll} contentContainerStyle={styles.dropdownScrollContent}>
                     {dropdownOptions.map((opt, idx) => {
                       const optLabel = opt.description || opt.label || '';
-                      const optId = opt.id || opt.value || '';
+                      const optId = opt.id || opt.value || opt.root_menu || '';
                       const displayLabel = optId && optLabel ? `${optLabel}` : optId || optLabel || JSON.stringify(opt);
 
                       return (

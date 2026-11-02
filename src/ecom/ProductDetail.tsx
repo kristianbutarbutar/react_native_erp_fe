@@ -1,3 +1,4 @@
+// customer/ProductDetail.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
@@ -20,6 +21,7 @@ export interface ProductDetailProps {
   objectid?: string;
   recordid?: string;
   sessionid?: string;
+  themeColor?: string; // <--- Theme prop applied ONLY to outer container frame
   onClose?: () => void;
   onExpandToggle?: () => void;
   onOrderPress?: (recordid?: string) => void;
@@ -39,13 +41,14 @@ interface FetchState {
   error: string | null;
 }
 
-const EXCLUDED_COLUMNS = ['id', 'pid', 'delflag', 'file'];
+const EXCLUDED_COLUMNS = ['id', 'pid', 'delflag', 'file', 'stock', 'stocks'];
 
 export const ProductDetail: React.FC<ProductDetailProps> = ({
   merchantid = '',
   objectid = '',
   recordid = '',
   sessionid = '',
+  themeColor = '#F5F2EB',
   onClose,
   onExpandToggle,
   onOrderPress,
@@ -57,7 +60,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const [isMerchantInfoOpen, setIsMerchantInfoOpen] = useState<boolean>(true);
   const [isReviewInfoOpen, setIsReviewInfoOpen] = useState<boolean>(true);
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
-
   const [showOrderStage, setShowOrderStage] = useState<boolean>(false);
 
   const [productState, setProductState] = useState<FetchState>({
@@ -112,7 +114,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         const response = await getObjectRecords(productPayload);
         const recordList = Array.isArray(response) ? response : response?.data;
         const columnsList = response?.columns?.columns || [];
-
         const record = Array.isArray(recordList) && recordList.length > 0 ? recordList[0] : null;
 
         setProductState({
@@ -145,7 +146,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         const response = await getObjectRecords(merchantPayload);
         const recordList = Array.isArray(response) ? response : response?.data;
         const columnsList = response?.columns?.columns || [];
-
         const record = Array.isArray(recordList) && recordList.length > 0 ? recordList[0] : null;
 
         setMerchantState({
@@ -290,6 +290,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     }
   };
 
+  const unifiedStockValue = productState.data?.stock_qty ?? productState.data?.stock ?? productState.data?.stocks ?? 0;
+
   const formatFieldValue = (keyName: string, val: any) => {
     if (val === undefined || val === null) return '';
     let valStr = String(val);
@@ -340,53 +342,66 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     if (!data) return null;
 
     const itemWidthStyle = { width: isDesktop ? ('48.5%' as any) : ('100%' as any) };
+    const renderedContent = [];
 
     if (columns && columns.length > 0) {
       const filteredCols = columns.filter(
         (col) => !EXCLUDED_COLUMNS.includes(col.col_name.toLowerCase())
       );
 
-      return (
-        <View style={styles.fieldsGrid}>
-          {filteredCols.map((col, idx) => {
-            const fieldName = col.col_name;
-            const fieldValue = data[fieldName];
-            if (fieldValue === undefined || fieldValue === null) return null;
+      filteredCols.forEach((col, idx) => {
+        const fieldName = col.col_name;
+        const fieldValue = data[fieldName];
+        if (fieldValue === undefined || fieldValue === null) return;
 
-            return (
-              <View key={`col-${idx}-${fieldName}`} style={[styles.fieldBlock, itemWidthStyle]}>
-                <Text style={styles.fieldLabel}>{col.label || fieldName}</Text>
-                <View style={styles.fieldValueContainer}>
-                  <Text style={styles.fieldValueText}>
-                    {formatFieldValue(fieldName, fieldValue)}
-                  </Text>
-                </View>
-              </View>
-            );
-          })}
-        </View>
+        renderedContent.push(
+          <View key={`col-${idx}-${fieldName}`} style={[styles.fieldBlock, itemWidthStyle]}>
+            <Text style={styles.fieldLabel}>{col.label || fieldName}</Text>
+            <View style={styles.fieldValueContainer}>
+              <Text style={styles.fieldValueText}>
+                {formatFieldValue(fieldName, fieldValue)}
+              </Text>
+            </View>
+          </View>
+        );
+      });
+    } else {
+      const filteredEntries = Object.entries(data).filter(
+        ([key]) => !EXCLUDED_COLUMNS.includes(key.toLowerCase())
       );
+
+      filteredEntries.forEach(([key, val], idx) => {
+        if (val === undefined || val === null) return;
+        renderedContent.push(
+          <View key={`raw-${idx}-${key}`} style={[styles.fieldBlock, itemWidthStyle]}>
+            <Text style={styles.fieldLabel}>{key}</Text>
+            <View style={styles.fieldValueContainer}>
+              <Text style={styles.fieldValueText}>{formatFieldValue(key, val)}</Text>
+            </View>
+          </View>
+        );
+      });
     }
 
-    const filteredEntries = Object.entries(data).filter(
-      ([key]) => !EXCLUDED_COLUMNS.includes(key.toLowerCase())
-    );
-
-    return (
-      <View style={styles.fieldsGrid}>
-        {filteredEntries.map(([key, val], idx) => {
-          if (val === undefined || val === null) return null;
-          return (
-            <View key={`raw-${idx}-${key}`} style={[styles.fieldBlock, itemWidthStyle]}>
-              <Text style={styles.fieldLabel}>{key}</Text>
-              <View style={styles.fieldValueContainer}>
-                <Text style={styles.fieldValueText}>{formatFieldValue(key, val)}</Text>
-              </View>
-            </View>
-          );
-        })}
+    renderedContent.push(
+      <View key="sync-stock-qty" style={[styles.fieldBlock, itemWidthStyle]}>
+        <Text style={styles.fieldLabel}>Stock Qty</Text>
+        <View style={styles.fieldValueContainer}>
+          <Text style={styles.fieldValueText}>{String(unifiedStockValue)}</Text>
+        </View>
       </View>
     );
+
+    renderedContent.push(
+      <View key="sync-stocks" style={[styles.fieldBlock, itemWidthStyle]}>
+        <Text style={styles.fieldLabel}>Stocks</Text>
+        <View style={styles.fieldValueContainer}>
+          <Text style={styles.fieldValueText}>{String(unifiedStockValue)}</Text>
+        </View>
+      </View>
+    );
+
+    return <View style={styles.fieldsGrid}>{renderedContent}</View>;
   };
 
   const renderHtmlSpec = (rawHtml: string) => {
@@ -406,11 +421,13 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     <View
       style={[
         styles.outerContainer,
+        { backgroundColor: themeColor }, // <--- ONLY outer container reflects themeColor
         isDesktop && styles.desktopFullBrowser,
         isFullScreen && styles.fullScreenContainer,
       ]}
     >
-      <View style={styles.topHeaderControl}>
+      {/* Top Header Control - Locked to static white */}
+      <View style={[styles.topHeaderControl, { backgroundColor: '#FFFFFF' }]}>
         <TouchableOpacity style={styles.headerIconBtn} onPress={toggleExpand}>
           <Text style={styles.headerIconText}>{isFullScreen ? '⤓' : '⤢'}</Text>
         </TouchableOpacity>
@@ -432,7 +449,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.mainWrapper, isDesktop && styles.desktopMainWrapper]}>
-          <View style={styles.topSectionCard}>
+          {/* Top Section Card - Locked to static white background */}
+          <View style={[styles.topSectionCard, { backgroundColor: '#FFFFFF' }]}>
             {isDesktop && (
               <View style={styles.desktopStatsContainer}>
                 <View style={styles.statBadge}>
@@ -442,16 +460,22 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 </View>
                 <View style={styles.statBadge}>
                   <Text style={styles.statBadgeText}>
-                    Stocks: {productState.data?.stock ?? productState.data?.stocks ?? 0}
+                    Stocks: {String(unifiedStockValue)}
                   </Text>
                 </View>
               </View>
             )}
 
             <View style={styles.centerPhotoWrapper}>
-              <View style={styles.photoPlaceholder} onLayout={handlePhotoLayout}>
+              <View
+                style={[
+                  styles.photoPlaceholder,
+                  { height: isDesktop ? 480 : 220, backgroundColor: '#FFFFFF' }
+                ]}
+                onLayout={handlePhotoLayout}
+              >
                 {loadingPhotos ? (
-                  <ActivityIndicator size="large" color="#4A6984" />
+                  <ActivityIndicator size="small" color="#4A6984" />
                 ) : photos.length > 0 ? (
                   <ScrollView
                     ref={photoScrollViewRef}
@@ -465,7 +489,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                     {photos.map((photoUrl, pIdx) => (
                       <View
                         key={`product-detail-photo-${pIdx}`}
-                        style={[styles.imageSlideWrapper, { width: photoBoxWidth || 480 }]}
+                        style={[styles.imageSlideWrapper, { width: photoBoxWidth || (isDesktop ? 480 : 300) }]}
                       >
                         <Image
                           source={{ uri: photoUrl }}
@@ -514,7 +538,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             </View>
           </View>
 
-          <View style={styles.fieldsetCard}>
+          {/* Fieldset Cards - Locked to static white background */}
+          <View style={[styles.fieldsetCard, { backgroundColor: '#FFFFFF' }]}>
             <TouchableOpacity
               activeOpacity={0.8}
               style={styles.fieldsetHeader}
@@ -544,7 +569,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                     </View>
                     <View style={styles.statBadge}>
                       <Text style={styles.statBadgeText}>
-                        Stocks: {productState.data?.stock ?? productState.data?.stocks ?? 0}
+                        Stocks: {String(unifiedStockValue)}
                       </Text>
                     </View>
                     <TouchableOpacity
@@ -589,7 +614,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             )}
           </View>
 
-          <View style={styles.fieldsetCard}>
+          {/* Merchant Info Fieldset */}
+          <View style={[styles.fieldsetCard, { backgroundColor: '#FFFFFF' }]}>
             <TouchableOpacity
               activeOpacity={0.8}
               style={styles.fieldsetHeader}
@@ -616,7 +642,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             )}
           </View>
 
-          <View style={styles.fieldsetCard}>
+          {/* Review Info Fieldset */}
+          <View style={[styles.fieldsetCard, { backgroundColor: '#FFFFFF' }]}>
             <TouchableOpacity
               activeOpacity={0.8}
               style={styles.fieldsetHeader}
@@ -638,7 +665,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             )}
           </View>
 
-          <View style={styles.fieldsetCard}>
+          {/* Recommendations Fieldset */}
+          <View style={[styles.fieldsetCard, { backgroundColor: '#FFFFFF' }]}>
             <View style={styles.fieldsetHeader}>
               <Text style={styles.fieldsetLegendText}>Other Products Recomendation</Text>
             </View>
@@ -651,7 +679,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         </View>
       </ScrollView>
 
-      {/* Cascading Closure integration for OrderStage */}
       {showOrderStage && (
         <View style={styles.orderStageOverlay}>
           <View style={[styles.orderStageContainer, isDesktop && styles.desktopOrderStageContainer]}>
@@ -662,7 +689,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               onSaveToChartSuccess={() => {
                 setShowOrderStage(false);
                 if (onClose) {
-                  onClose(); // Closes ProductDetail upon successful chart save
+                  onClose();
                 }
               }}
             />
@@ -678,7 +705,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     maxHeight: '100%',
-    backgroundColor: '#FAFAFA',
     borderWidth: 1,
     borderColor: '#DCDCDC',
     borderRadius: 8,
@@ -701,10 +727,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderBottomWidth: 1,
     borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
   },
   topHeaderTitleContainer: {
     flex: 1,
@@ -713,7 +738,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   topHeaderTitleText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#0F172A',
     textAlign: 'center',
@@ -722,26 +747,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#CBD5E1',
     borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     backgroundColor: '#F8FAFC',
   },
   headerIconText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: '#334155',
   },
   scrollArea: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
   },
   scrollContent: {
-    padding: 16,
-    paddingTop: 24,
+    padding: 12,
+    paddingTop: 16,
   },
   mainWrapper: {
     width: '100%',
-    gap: 16,
+    gap: 12,
   },
   desktopMainWrapper: {
     maxWidth: 1000,
@@ -751,30 +775,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 8,
-    padding: 16,
-    backgroundColor: '#FFFFFF',
+    padding: 12,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    marginTop: 8,
+    marginTop: 4,
   },
   centerPhotoWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    maxWidth: 480,
+    maxWidth: 540,
   },
   photoPlaceholder: {
-    width: 480,
-    height: 480,
+    width: 540,
     maxWidth: '100%',
-    aspectRatio: 1,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
     overflow: 'hidden',
     position: 'relative',
   },
@@ -792,7 +813,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   photoPlaceholderText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
     color: '#64748B',
   },
@@ -809,9 +830,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    borderRadius: 18,
-    width: 36,
-    height: 36,
+    borderRadius: 16,
+    width: 32,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000000',
@@ -824,41 +845,41 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
   arrowText: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1E293B',
     marginTop: -2,
   },
   paginationDots: {
-    marginTop: 12,
+    marginTop: 8,
     alignItems: 'center',
   },
   dotsText: {
-    fontSize: 15,
+    fontSize: 14,
     letterSpacing: 4,
     color: '#94A3B8',
   },
   desktopStatsContainer: {
     position: 'absolute',
-    top: 16,
-    right: 16,
+    top: 12,
+    right: 12,
     flexDirection: 'column',
-    gap: 8,
+    gap: 6,
     alignItems: 'flex-end',
     zIndex: 5,
   },
   statBadge: {
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   statBadgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
     color: '#334155',
   },
@@ -866,16 +887,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 16,
+    gap: 6,
+    marginBottom: 12,
     width: '100%',
   },
   mobileOrderBtn: {
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 5,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -884,19 +905,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    marginTop: 10,
+    marginTop: 8,
     position: 'relative',
   },
   fieldsetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
     backgroundColor: '#FFFFFF',
-    marginTop: -12,
-    marginLeft: 14,
+    marginTop: -11,
+    marginLeft: 12,
     alignSelf: 'flex-start',
     borderWidth: 1,
     borderColor: '#CBD5E1',
@@ -904,62 +924,62 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   fieldsetLegendText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: '#1E293B',
   },
   collapseArrow: {
-    fontSize: 10,
-    marginLeft: 8,
+    fontSize: 9,
+    marginLeft: 6,
     color: '#64748B',
   },
   productDetailBody: {
-    padding: 16,
-    paddingTop: 28,
+    padding: 12,
+    paddingTop: 22,
     position: 'relative',
-    minHeight: 140,
+    minHeight: 110,
   },
   desktopOrderBtn: {
     position: 'absolute',
-    top: 16,
-    right: 16,
+    top: 12,
+    right: 12,
     zIndex: 10,
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 6,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 5,
     backgroundColor: '#FFFFFF',
   },
   orderBtnText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: '#1E293B',
   },
   fieldsetBody: {
-    padding: 16,
-    paddingTop: 20,
-    gap: 10,
+    padding: 12,
+    paddingTop: 16,
+    gap: 8,
   },
   reviewPanelWrapper: {
     width: '100%',
   },
   contentInnerBox: {
-    minHeight: 110,
+    minHeight: 90,
     justifyContent: 'center',
-    padding: 4,
+    padding: 2,
     width: '100%',
   },
   recommendationBox: {
-    minHeight: 150,
+    minHeight: 120,
   },
   contentText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#475569',
     textAlign: 'center',
   },
   errorText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#D9534F',
     textAlign: 'center',
   },
@@ -968,14 +988,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 8,
   },
   fieldBlock: {
-    gap: 4,
-    marginBottom: 8,
+    gap: 2,
+    marginBottom: 6,
   },
   fieldLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: '#475569',
     textTransform: 'capitalize',
@@ -983,53 +1003,53 @@ const styles = StyleSheet.create({
   fieldValueContainer: {
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    borderRadius: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     backgroundColor: '#FAFAFA',
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   fieldValueText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#0F172A',
     flexWrap: 'wrap',
     flexShrink: 1,
   },
   productDetailContentWrapper: {
     width: '100%',
-    gap: 16,
+    gap: 12,
   },
   specLoadingContainer: {
-    marginTop: 12,
+    marginTop: 10,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
   },
   specLoadingText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#64748B',
   },
   specContainer: {
     width: '100%',
-    marginTop: 12,
-    gap: 4,
+    marginTop: 10,
+    gap: 3,
   },
   specHtmlBox: {
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: 6,
-    padding: 12,
+    borderRadius: 5,
+    padding: 10,
     backgroundColor: '#FAFAFA',
     width: '100%',
-    minHeight: 80,
+    minHeight: 70,
     overflow: 'hidden',
   },
   specHtmlText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#0F172A',
-    lineHeight: 20,
+    lineHeight: 18,
     flexWrap: 'wrap',
   },
   orderStageOverlay: {

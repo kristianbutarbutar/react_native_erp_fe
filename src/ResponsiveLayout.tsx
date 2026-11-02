@@ -12,11 +12,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import type { MenuItem } from './types';
-import { menuLoader, getTableRecords } from './apiService';
+import { menuLoader, getTableRecords, getObjectRecords } from './apiService';
 import { DEFAULT_ROW_START, DEFAULT_ROW_END, PAGE_SIZE } from './config';
 import Button from './Button';
 import type { ButtonConfig } from './Button';
 import { renderFontAwesomeIcon } from './customer/FontAwesomeIcon';
+import { loader_left_menu } from './global';
 
 // Imports from the ./panel folder
 import NewPanel from './panel/NewPanel';
@@ -273,7 +274,6 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ domainFunc }
 
   const SESSION_ID = 'sess_12345';
 
-  // Theme State: 'black' | 'oldBlue' | 'grey'
   const [currentTheme, setCurrentTheme] = useState<'black' | 'oldBlue' | 'grey'>('oldBlue');
   const [isLeftMenuCollapsed, setIsLeftMenuCollapsed] = useState<boolean>(false);
 
@@ -542,30 +542,35 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ domainFunc }
 
     const loadLeftMenu = async () => {
       try {
-        const menuConfigs = [
-          { id: 'f2b7a901-c8d3-4a52-b1e4-86d91c2f3e04', title: 'Main Categories' },
-          { id: '4c9a1dedbedde3529d0906426381926812b537eabcc0d', title: 'App Multi Finance' },
-          { id: '3588f87fb5ed9b9c93b0129a37b329b1736c18f3ac5ef', title: 'App F & B' },
-          { id: '0c47d73b2cfcb4487121754ed3d313c6176d0a758fa54', title: 'App Student Management System' },
-          { id: '26f281b80eaa274fb0e740e32232cb3f7b77d680162d2', title: 'App Banking' },
-          { id: 'c2f4f12a-2a49-4b1c-8fea-6c0e8e90a17f', title: 'eCommerce Online' },
-        ];
+        // Fetch dynamic left menu configurations using getObjectRecords
+        const menuConfigResponse = await getObjectRecords({
+          objectid: loader_left_menu,
+          whereClause: [],
+          filterColumns: ['root_menu', 'label'],
+        });
+
+        console.log("loadLeftMenu > menuConfigResponse > ", JSON.stringify(menuConfigResponse));
+
+        const menuConfigRecords = menuConfigResponse.data;
 
         const results = await Promise.all(
-          menuConfigs.map(async (cfg) => {
-            const resp = await menuLoader(2, cfg.id);
+          menuConfigRecords.map(async (cfg: any) => {
+            const menuId = cfg.root_menu;
+            const menuTitle = cfg.label || "";
+
+            const resp = await menuLoader(2, menuId);
             return {
-              id: cfg.id,
-              title: cfg.title,
+              id: menuId,
+              title: menuTitle,
               items: extractArray(resp),
-              isCollapsed: true, // Set default to collapsed as requested
+              isCollapsed: true,
             };
           })
         );
 
         setLeftMenuGroups(results);
       } catch (err) {
-        console.error('Error fetching Left Menu:', err);
+        console.error('Error fetching Left Menu via getObjectRecords:', err);
         setLeftMenuGroups([]);
       } finally {
         setLoadingLeftMenu(false);
@@ -627,7 +632,6 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ domainFunc }
     fetchContentForMenu(selectedMenu, newStart, newEnd);
   };
 
-  // Helper theme colors and text rules
   const getThemeBackground = () => {
     switch (currentTheme) {
       case 'black': return '#0F172A';
@@ -812,9 +816,7 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ domainFunc }
       {createElement('style', null, tableStyles)}
 
       <View style={styles.container}>
-        {/* Banner with split containers: Left (3 Circles) and Right (topPageMenuOnRight) */}
         <View style={[styles.banner, { backgroundColor: getThemeBackground() }]}>
-          {/* Container 1: Top-Left 3 Comfort Color Selector Circles */}
           <View style={styles.themeSelectorContainer}>
             <TouchableOpacity
               style={[
@@ -845,7 +847,6 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ domainFunc }
             />
           </View>
 
-          {/* Container 2: Top-Right topPageMenuOnRight items */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -909,7 +910,6 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ domainFunc }
           </ScrollView>
         </View>
 
-        {/* Top Menu Box (Dynamic Theme) with 0px border line */}
         <View style={[styles.topMenu, { backgroundColor: getThemeBackground(), borderBottomWidth: 0 }]}>
           <ScrollView
             horizontal
@@ -1012,7 +1012,6 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ domainFunc }
           </View>
         )}
 
-        {/* Main Body */}
         <View style={[styles.mainBody, !isDesktop && styles.mainBodyMobile]}>
           {isDesktop && (
             <View
@@ -1161,7 +1160,6 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ domainFunc }
           </View>
         </View>
 
-        {/* Footer Box (Dynamic Theme) with 0px border line */}
         <View style={[styles.footer, { backgroundColor: getThemeBackground(), borderTopWidth: 0 }]}>
           {loadingFooter ? (
             <ActivityIndicator size="small" color={getThemeTextColor()} />
@@ -1208,7 +1206,6 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ domainFunc }
         </View>
       </View>
 
-      {/* CUSTOM ALERT BOX RENDERED WITH PROPER ONRESPONSE HOOK */}
       {customAlert.visible &&
         renderPortal(
           <CustomAlertBox
@@ -1223,7 +1220,6 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ domainFunc }
           2147483647
         )}
 
-      {/* ALERT PANEL OVERLAY */}
       <AlertPanel
         isVisible={isAlertPanelVisible}
         title="Notification"
@@ -1233,7 +1229,6 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ domainFunc }
         }}
       />
 
-      {/* CHAT PANEL MODAL OVERLAY */}
       {isChatPanelOpen && uid &&
         renderPortal(
           <ChatPanel
@@ -1244,7 +1239,6 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ domainFunc }
           2147483646
         )}
 
-      {/* LOGIN PANEL MODAL OVERLAY */}
       {isLoginPanelOpen &&
         renderPortal(
           <LoginPanel
