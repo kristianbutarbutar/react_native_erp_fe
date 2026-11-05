@@ -21,7 +21,7 @@ export interface ProductDetailProps {
   objectid?: string;
   recordid?: string;
   sessionid?: string;
-  themeColor?: string; // <--- Theme prop applied ONLY to outer container frame
+  themeColor?: string;
   onClose?: () => void;
   onExpandToggle?: () => void;
   onOrderPress?: (recordid?: string) => void;
@@ -69,6 +69,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     error: null,
   });
 
+  const [productCategory, setProductCategory] = useState<string>('');
+
   const [merchantState, setMerchantState] = useState<FetchState>({
     data: null,
     columns: [],
@@ -100,6 +102,20 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     }
   }, [productState.data?.file, recordid]);
 
+  const extractAndFormatCategory = (record: Record<string, any>) => {
+    for (const [key, val] of Object.entries(record)) {
+      if (key.toLowerCase().includes('category') && val) {
+        const valStr = String(val);
+        const closeBracketIndex = valStr.indexOf(']');
+        if (closeBracketIndex !== -1) {
+          return valStr.substring(closeBracketIndex + 1).trim();
+        }
+        return valStr.trim();
+      }
+    }
+    return '';
+  };
+
   const loadDataSequentially = async () => {
     if (objectid && recordid) {
       setProductState((prev) => ({ ...prev, loading: true, error: null }));
@@ -115,6 +131,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         const recordList = Array.isArray(response) ? response : response?.data;
         const columnsList = response?.columns?.columns || [];
         const record = Array.isArray(recordList) && recordList.length > 0 ? recordList[0] : null;
+
+        if (record) {
+          setProductCategory(extractAndFormatCategory(record));
+        }
 
         setProductState({
           data: record,
@@ -417,16 +437,18 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     return <Text style={styles.specHtmlText}>{rawHtml}</Text>;
   };
 
+  const containerHeight = isDesktop ? 480 : 260;
+
   return (
     <View
       style={[
         styles.outerContainer,
-        { backgroundColor: themeColor }, // <--- ONLY outer container reflects themeColor
+        { backgroundColor: themeColor },
         isDesktop && styles.desktopFullBrowser,
         isFullScreen && styles.fullScreenContainer,
       ]}
     >
-      {/* Top Header Control - Locked to static white */}
+      {/* Top Header Control */}
       <View style={[styles.topHeaderControl, { backgroundColor: '#FFFFFF' }]}>
         <TouchableOpacity style={styles.headerIconBtn} onPress={toggleExpand}>
           <Text style={styles.headerIconText}>{isFullScreen ? '⤓' : '⤢'}</Text>
@@ -449,7 +471,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.mainWrapper, isDesktop && styles.desktopMainWrapper]}>
-          {/* Top Section Card - Locked to static white background */}
+          {/* Top Section Card */}
           <View style={[styles.topSectionCard, { backgroundColor: '#FFFFFF' }]}>
             {isDesktop && (
               <View style={styles.desktopStatsContainer}>
@@ -466,13 +488,13 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               </View>
             )}
 
-            <View style={styles.centerPhotoWrapper}>
+            <View style={styles.centerPhotoWrapper} onLayout={handlePhotoLayout}>
+              {/* Full-bleed photo placeholder covering container */}
               <View
                 style={[
                   styles.photoPlaceholder,
-                  { height: isDesktop ? 480 : 220, backgroundColor: '#FFFFFF' }
+                  { height: containerHeight, backgroundColor: '#FFFFFF' }
                 ]}
-                onLayout={handlePhotoLayout}
               >
                 {loadingPhotos ? (
                   <ActivityIndicator size="small" color="#4A6984" />
@@ -484,17 +506,17 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                     showsHorizontalScrollIndicator={false}
                     onScroll={handleScroll}
                     scrollEventThrottle={16}
-                    style={styles.carouselScrollView}
+                    style={[styles.carouselScrollView, { height: containerHeight }]}
                   >
                     {photos.map((photoUrl, pIdx) => (
                       <View
                         key={`product-detail-photo-${pIdx}`}
-                        style={[styles.imageSlideWrapper, { width: photoBoxWidth || (isDesktop ? 480 : 300) }]}
+                        style={[styles.imageSlideWrapper, { width: photoBoxWidth || (isDesktop ? 480 : 300), height: containerHeight }]}
                       >
                         <Image
                           source={{ uri: photoUrl }}
-                          style={styles.productImg}
-                          resizeMode="contain"
+                          style={[styles.productImg, { width: photoBoxWidth || (isDesktop ? 480 : 300), height: containerHeight }]}
+                          resizeMode="cover"
                         />
                       </View>
                     ))}
@@ -502,29 +524,51 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 ) : (
                   <Text style={styles.photoPlaceholderText}>Product Photo</Text>
                 )}
-
-                {photos.length > 1 && (
-                  <View style={styles.carouselArrowsOverlay}>
-                    <TouchableOpacity
-                      style={[styles.arrowBtn, activeIndex === 0 && styles.disabledArrow]}
-                      onPress={() => scrollToIndex(activeIndex - 1)}
-                      disabled={activeIndex === 0}
-                    >
-                      <Text style={styles.arrowText}>‹</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.arrowBtn,
-                        activeIndex === photos.length - 1 && styles.disabledArrow,
-                      ]}
-                      onPress={() => scrollToIndex(activeIndex + 1)}
-                      disabled={activeIndex === photos.length - 1}
-                    >
-                      <Text style={styles.arrowText}>›</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
               </View>
+
+              {/* Embedded Category Badge on top left of product photos */}
+              {productCategory ? (
+                <View style={styles.categoryBadgeOverlay}>
+                  <Text style={styles.categoryBadgeText}>{productCategory}</Text>
+                </View>
+              ) : null}
+
+              {/* Top Right Actions Overlay (Love & Share) */}
+              <View style={styles.photoTopOverlay}>
+                <View />
+                <View style={styles.actionsRight}>
+                  <TouchableOpacity style={styles.iconBtn}>
+                    <Text style={styles.iconQtyText}>{productState.data?.love_qty ?? 0}</Text>
+                    <Text style={styles.actionIcon}>❤️</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.iconBtn}>
+                    <Text style={styles.iconQtyText}>{productState.data?.share_qty ?? 0}</Text>
+                    <Text style={styles.actionIcon}>🔗</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {photos.length > 1 && (
+                <View style={styles.carouselArrowsOverlay}>
+                  <TouchableOpacity
+                    style={[styles.arrowBtn, activeIndex === 0 && styles.disabledArrow]}
+                    onPress={() => scrollToIndex(activeIndex - 1)}
+                    disabled={activeIndex === 0}
+                  >
+                    <Text style={styles.arrowText}>‹</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.arrowBtn,
+                      activeIndex === photos.length - 1 && styles.disabledArrow,
+                    ]}
+                    onPress={() => scrollToIndex(activeIndex + 1)}
+                    disabled={activeIndex === photos.length - 1}
+                  >
+                    <Text style={styles.arrowText}>›</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               <View style={styles.paginationDots}>
                 {photos.length > 0 ? (
@@ -538,7 +582,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             </View>
           </View>
 
-          {/* Fieldset Cards - Locked to static white background */}
+          {/* Fieldset Cards */}
           <View style={[styles.fieldsetCard, { backgroundColor: '#FFFFFF' }]}>
             <TouchableOpacity
               activeOpacity={0.8}
@@ -599,7 +643,17 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                         </View>
                       ) : htmlContent ? (
                         <View style={styles.specContainer}>
-                          <Text style={styles.fieldLabel}>Product Specification</Text>
+                          <Text
+                            style={[
+                              styles.fieldLabel,
+                              {
+                                color: '#000000',
+                                fontSize: isDesktop ? 11 : 14,
+                              },
+                            ]}
+                          >
+                            Product Specification
+                          </Text>
                           <View style={styles.specHtmlBox}>
                             {renderHtmlSpec(htmlContent)}
                           </View>
@@ -775,7 +829,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 8,
-    padding: 12,
+    padding: 8,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -786,13 +840,67 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
     maxWidth: 540,
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: 6,
+  },
+  categoryBadgeOverlay: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    zIndex: 20,
+    borderWidth: 1,
+    borderColor: '#000000',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 2,
+    maxWidth: '60%',
+  },
+  categoryBadgeText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#000000',
+  },
+  photoTopOverlay: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
+    zIndex: 20,
+  },
+  actionsRight: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  iconBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#000000',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 2,
+    gap: 3,
+  },
+  iconQtyText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  actionIcon: {
+    fontSize: 11,
   },
   photoPlaceholder: {
-    width: 540,
+    width: '100%',
     maxWidth: '100%',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
@@ -801,16 +909,13 @@ const styles = StyleSheet.create({
   },
   carouselScrollView: {
     width: '100%',
-    height: '100%',
   },
   imageSlideWrapper: {
-    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
   productImg: {
     width: '100%',
-    height: '100%',
   },
   photoPlaceholderText: {
     fontSize: 15,
@@ -824,12 +929,12 @@ const styles = StyleSheet.create({
     right: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    zIndex: 6,
+    zIndex: 15,
   },
   arrowBtn: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#000000',
     borderRadius: 16,
     width: 32,
     height: 32,
@@ -847,17 +952,24 @@ const styles = StyleSheet.create({
   arrowText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1E293B',
+    color: '#000000',
     marginTop: -2,
   },
   paginationDots: {
-    marginTop: 8,
+    position: 'absolute',
+    bottom: 8,
+    left: 0,
+    right: 0,
     alignItems: 'center',
+    zIndex: 15,
   },
   dotsText: {
-    fontSize: 14,
-    letterSpacing: 4,
-    color: '#94A3B8',
+    fontSize: 12,
+    letterSpacing: 2,
+    color: '#000000',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    paddingHorizontal: 6,
+    borderRadius: 4,
   },
   desktopStatsContainer: {
     position: 'absolute',
@@ -963,6 +1075,10 @@ const styles = StyleSheet.create({
   },
   reviewPanelWrapper: {
     width: '100%',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 6,
+    overflow: 'hidden',
   },
   contentInnerBox: {
     minHeight: 90,

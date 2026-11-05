@@ -17,8 +17,6 @@ import ProductDetail from './ProductDetail';
 import { TRACK_VIEW_LOVE_OBJECT_ID, TRACK_VIEW_SHARE_OBJECT_ID, CHART_OBJECT_ID } from './../global';
 import { clientInfo, loadCookies } from './ts/public';
 
-
-
 const productPanelAnimationStyles = `
   @keyframes iconBlinkAnim {
     0% { opacity: 1; transform: scale(1); }
@@ -61,7 +59,8 @@ const ProductPhotoBox: React.FC<{
   sessionid?: string;
   shareObjectId?: string;
   loveObjectId?: string;
-}> = ({ item, sessionid, shareObjectId = TRACK_VIEW_SHARE_OBJECT_ID, loveObjectId = TRACK_VIEW_LOVE_OBJECT_ID }) => {
+  categoryDisplay?: string | null;
+}> = ({ item, sessionid, shareObjectId = TRACK_VIEW_SHARE_OBJECT_ID, loveObjectId = TRACK_VIEW_LOVE_OBJECT_ID, categoryDisplay }) => {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
 
@@ -212,31 +211,16 @@ const ProductPhotoBox: React.FC<{
     }
   };
 
+  const containerHeight = isDesktop ? 310 : 190;
+
   return (
     <div style={{ width: '100%', border: '0px solid transparent' }} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
-      aku<View
+      <View
         ref={containerRef}
-        style={[styles.photoContainer, { height: isDesktop ? 296 : 176, backgroundColor: '#FFFFFF', borderWidth: 0, borderColor: 'transparent' }]}
+        style={[styles.photoContainer, { height: containerHeight, backgroundColor: '#FFFFFF', borderWidth: 0, borderColor: 'transparent' }]}
         onLayout={handleLayout}
       >
-        <View style={styles.photoTopOverlay}>
-          <View />
-          <View style={styles.actionsRight}>
-            <TouchableOpacity style={styles.iconBtn} onPress={handleLoveClick}>
-              <Text style={styles.iconQtyText}>{loveQty}</Text>
-              <div className={isHovered ? 'hover-blink-active' : ''} style={{ display: 'inline-block' }}>
-                <Text style={styles.actionIcon}>❤️</Text>
-              </div>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn} onPress={handleShareClick}>
-              <Text style={styles.iconQtyText}>{shareQty}</Text>
-              <div className={isHovered ? 'hover-blink-active' : ''} style={{ display: 'inline-block' }}>
-                <Text style={styles.actionIcon}>🔗</Text>
-              </div>
-            </TouchableOpacity>
-          </View>
-        </View>
-
+        {/* Full-bleed photo placeholder covering the outer box */}
         <View style={[styles.photoPlaceholder, { backgroundColor: '#FFFFFF' }]}>
           {loadingPhotos ? (
             <View style={styles.loadingPhotoContainer}>
@@ -253,17 +237,45 @@ const ProductPhotoBox: React.FC<{
               style={styles.carouselScrollView}
             >
               {photos.map((photoUrl, pIdx) => (
-                <Image
-                  key={`photo-${pIdx}`}
-                  source={{ uri: photoUrl }}
-                  style={[styles.productImg, { width: boxWidth || 250 }]}
-                  resizeMode="contain"
-                />
+                <View key={`photo-wrap-${pIdx}`} style={{ width: boxWidth || 280, height: containerHeight, justifyContent: 'center', alignItems: 'center' }}>
+                  <Image
+                    source={{ uri: photoUrl }}
+                    style={[styles.productImg, { width: boxWidth || 280, height: containerHeight }]}
+                    resizeMode="cover"
+                  />
+                </View>
               ))}
             </ScrollView>
           ) : (
             <Text style={styles.photoPlaceholderText}>product photo</Text>
           )}
+        </View>
+
+        {/* Attached Overlays directly on top of the product photo */}
+        {categoryDisplay && (
+          <View style={styles.categoryBadgeOverlay}>
+            <Text style={styles.categoryText} numberOfLines={1}>
+              {categoryDisplay}
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.photoTopOverlay}>
+          <View />
+          <View style={styles.actionsRight}>
+            <TouchableOpacity style={styles.iconBtn} onPress={handleLoveClick}>
+              <Text style={styles.iconQtyText}>{loveQty}</Text>
+              <div className={isHovered ? 'hover-blink-active' : ''} style={{ display: 'inline-block' }}>
+                <Text style={styles.actionIcon}>❤️</Text>
+              </div>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconBtn} onPress={handleShareClick}>
+              <Text style={styles.iconQtyText}>{shareQty}</Text>
+              <div className={isHovered ? 'hover-blink-active' : ''} style={{ display: 'inline-block' }}>
+                <Text style={styles.actionIcon}>🔗</Text>
+              </div>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {photos.length > 1 && (
@@ -481,15 +493,8 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
                     sessionid={sessionid}
                     shareObjectId={shareObjectId}
                     loveObjectId={loveObjectId}
+                    categoryDisplay={categoryDisplay}
                   />
-
-                  {categoryDisplay && (
-                    <View style={styles.categoryBadgeOverlay}>
-                      <Text style={styles.categoryText} numberOfLines={1}>
-                        {categoryDisplay}
-                      </Text>
-                    </View>
-                  )}
                 </View>
 
                 <View style={styles.infoContainer}>
@@ -581,10 +586,9 @@ const styles = StyleSheet.create({
   gridContainer: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch' },
   card: { borderRadius: 8, borderWidth: 0, borderColor: '#000000', overflow: 'hidden', padding: 8, gap: 8, marginBottom: 4, boxSizing: 'border-box' as any },
   relativeBox: { position: 'relative', width: '100%' },
-  // Symmetric padding (paddingHorizontal: 8, paddingVertical: 8) ensuring equal left/right and top/bottom white margins with 0px border
-  photoContainer: { width: '100%', borderWidth: 0, borderColor: 'transparent', borderRadius: 4, position: 'relative', justifyContent: 'space-between', paddingHorizontal: 8, paddingVertical: 8, overflow: 'hidden' },
-  categoryBadgeOverlay: { position: 'absolute', top: 12, left: 12, zIndex: 10, borderWidth: 1, borderColor: '#000000', paddingHorizontal: 8, paddingVertical: 3, backgroundColor: '#FFFFFF', borderRadius: 2, maxWidth: '60%' },
-  photoTopOverlay: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 5 },
+  photoContainer: { width: '100%', borderWidth: 0, borderColor: 'transparent', borderRadius: 4, position: 'relative', justifyContent: 'space-between', padding: 0, overflow: 'hidden' },
+  categoryBadgeOverlay: { position: 'absolute', top: 10, left: 10, zIndex: 20, borderWidth: 1, borderColor: '#000000', paddingHorizontal: 8, paddingVertical: 3, backgroundColor: '#FFFFFF', borderRadius: 2, maxWidth: '60%' },
+  photoTopOverlay: { position: 'absolute', top: 10, left: 10, right: 10, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-start', zIndex: 20 },
   categoryText: { fontSize: 11, fontWeight: '500', color: '#000000' },
   actionsRight: { flexDirection: 'row', gap: 4 },
   iconBtn: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#000000', paddingHorizontal: 6, paddingVertical: 2, backgroundColor: '#FFFFFF', borderRadius: 2, gap: 3 },
@@ -595,13 +599,13 @@ const styles = StyleSheet.create({
   carouselScrollView: { width: '100%', height: '100%' },
   productImg: { height: '100%' },
   photoPlaceholderText: { fontSize: 14, color: '#333333', fontWeight: '400' },
-  carouselArrowsOverlay: { position: 'absolute', top: '48%', left: 4, right: 4, flexDirection: 'row', justifyContent: 'space-between', zIndex: 6 },
+  carouselArrowsOverlay: { position: 'absolute', top: '48%', left: 4, right: 4, flexDirection: 'row', justifyContent: 'space-between', zIndex: 15 },
   arrowBtn: { backgroundColor: 'rgba(255, 255, 255, 0.85)', borderWidth: 1, borderColor: '#000000', borderRadius: 12, width: 24, height: 24, justifyContent: 'center', alignItems: 'center' },
   disabledArrow: { opacity: 0.3 },
   arrowText: { fontSize: 15, fontWeight: 'bold', color: '#000000', marginTop: -2 },
-  paginationDots: { alignItems: 'center', justifyContent: 'center', zIndex: 5, marginBottom: 2 },
-  dotsText: { fontSize: 12, letterSpacing: 2, color: '#000000' },
-  infoContainer: { gap: 6 },
+  paginationDots: { position: 'absolute', bottom: 8, left: 0, right: 0, alignItems: 'center', justifyContent: 'center', zIndex: 15 },
+  dotsText: { fontSize: 12, letterSpacing: 2, color: '#000000', backgroundColor: 'rgba(255, 255, 255, 0.7)', paddingHorizontal: 6, borderRadius: 4 },
+  infoContainer: { gap: 6, marginTop: 8 },
   rowLine1: { flexDirection: 'row', gap: 6, alignItems: 'center' },
   name1Container: { flex: 1, borderWidth: 1, borderColor: '#000000', paddingHorizontal: 6, paddingVertical: 5, borderRadius: 2, backgroundColor: '#FFFFFF' },
   name1Text: { fontSize: 11, fontWeight: '600', color: '#000000' },

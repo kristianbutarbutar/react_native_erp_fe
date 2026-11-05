@@ -8,10 +8,11 @@ import {
   ActivityIndicator,
   useWindowDimensions,
   Modal,
+  Platform,
 } from 'react-native';
 import { getObjectRecords } from './../apiService';
 import NewPanel from './../panel/NewPanel';
-import { REVIEW_PANEL} from './../global';
+import { REVIEW_PANEL } from './../global';
 
 export interface ReviewPanelProps {
   objectid: string;
@@ -50,6 +51,18 @@ const getDynamicTheme = (id: string) => {
   return DYNAMIC_THEMES[index];
 };
 
+// Subtle animation for the outer comment list group box border
+const reviewPanelAnimationStyles = `
+  @keyframes softBorderPulse {
+    0% { border-color: #E2E8F0; box-shadow: 0 0 0 rgba(226, 232, 240, 0); }
+    50% { border-color: #CBD5E1; box-shadow: 0 0 8px rgba(203, 213, 225, 0.4); }
+    100% { border-color: #E2E8F0; box-shadow: 0 0 0 rgba(226, 232, 240, 0); }
+  }
+  .animated-comment-box {
+    animation: softBorderPulse 4s infinite ease-in-out !important;
+  }
+`;
+
 export const ReviewPanel: React.FC<ReviewPanelProps> = ({ objectid, pid }) => {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
@@ -80,7 +93,8 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ objectid, pid }) => {
 
     const payload = {
       objectid: objectid,
-      whereClause: [{ col_name: 'pid', value: pid }], filterColumns:[]
+      whereClause: [{ col_name: 'pid', value: pid }],
+      filterColumns: [],
     };
 
     try {
@@ -89,7 +103,6 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ objectid, pid }) => {
 
       if (Array.isArray(records)) {
         setComments(records);
-        // Once parent comments load, fetch child comments sequentially
         fetchChildCommentsSequentially(records);
       } else {
         setComments([]);
@@ -102,7 +115,6 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ objectid, pid }) => {
     }
   };
 
-  // Fetch child comments for each comment one by one sequentially
   const fetchChildCommentsSequentially = async (parentRecords: CommentRecord[]) => {
     if (!parentRecords || parentRecords.length === 0) return;
 
@@ -115,7 +127,8 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ objectid, pid }) => {
       try {
         const childPayload = {
           objectid: REVIEW_PANEL,
-          whereClause: [{ col_name: 'pid', value: parent.id }],filterColumns:[]
+          whereClause: [{ col_name: 'pid', value: parent.id }],
+          filterColumns: [],
         };
 
         const childResponse = await getObjectRecords(childPayload);
@@ -123,7 +136,6 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ objectid, pid }) => {
 
         if (Array.isArray(childRecords) && childRecords.length > 0) {
           childrenMap[parent.id] = childRecords;
-          // Update state iteratively so user sees loaded children progressively
           setChildCommentsMap((prev) => ({
             ...prev,
             [parent.id]: childRecords,
@@ -158,7 +170,7 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ objectid, pid }) => {
 
   const handleCloseModal = () => {
     setShowNewModal(false);
-    fetchComments(); // Refresh comment list on modal close
+    fetchComments();
   };
 
   const handleShowMore = () => {
@@ -170,6 +182,8 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ objectid, pid }) => {
 
   return (
     <View style={styles.rootContainer}>
+      {Platform.OS === 'web' && React.createElement('style', null, reviewPanelAnimationStyles)}
+
       {/* Top Header Action Row */}
       <View style={styles.topActionRow}>
         <TouchableOpacity style={styles.newButton} onPress={handleNewCommentPress}>
@@ -177,127 +191,123 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ objectid, pid }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Main Comment List Group Box */}
-      <View style={styles.commentListBorderBox}>
-        {/* Fieldset-style Title Label */}
-        <View style={styles.borderBoxTitleBadge}>
-          <Text style={styles.borderBoxTitleText}>Comment List</Text>
-        </View>
-
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#000000" />
+      {/* Main Comment List Group Box with Soft Grey Border & Animation */}
+      <div className={Platform.OS === 'web' ? 'animated-comment-box' : ''} style={{ width: '100%', borderRadius: 2 }}>
+        <View style={styles.commentListBorderBox}>
+          {/* Fieldset-style Title Label */}
+          <View style={styles.borderBoxTitleBadge}>
+            <Text style={styles.borderBoxTitleText}>Comment List</Text>
           </View>
-        ) : error ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={fetchComments}>
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContentContainer}
-          >
-            {visibleComments.map((item, index) => {
-              const creatorName = item.createdby || item.creator || 'Creator Name';
-              const mergedComment = [item.review1, item.review2]
-                .filter((r) => r && String(r).trim() !== '')
-                .join(' ');
 
-              // Dynamic color theme shared between parent and its child comments
-              const theme = getDynamicTheme(item.id || `parent-${index}`);
-              const childList = childCommentsMap[item.id] || [];
-              const isChildExpanded = !!expandedChildMap[item.id];
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#000000" />
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={fetchComments}>
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContentContainer}
+            >
+              {visibleComments.map((item, index) => {
+                const creatorName = item.createdby || item.creator || 'Creator Name';
+                const mergedComment = [item.review1, item.review2]
+                  .filter((r) => r && String(r).trim() !== '')
+                  .join(' ');
 
-              return (
-                <View key={item.id || index} style={styles.commentCardRow}>
-                  <Text style={styles.creatorNameText}>{creatorName}</Text>
+                const theme = getDynamicTheme(item.id || `parent-${index}`);
+                const childList = childCommentsMap[item.id] || [];
+                const isChildExpanded = !!expandedChildMap[item.id];
 
-                  {/* Parent Comment Box with Dynamic Relationship Border & BG Color */}
-                  <View
-                    style={[
-                      styles.commentBubbleBox,
-                      { borderColor: theme.border, backgroundColor: theme.bg },
-                    ]}
-                  >
-                    <Text style={styles.commentContentText}>
-                      {mergedComment || 'comments'}
-                    </Text>
-                  </View>
+                return (
+                  <View key={item.id || index} style={styles.commentCardRow}>
+                    <Text style={styles.creatorNameText}>{creatorName}</Text>
 
-                  {/* Actions Row (Reply & Child Expand Toggle) */}
-                  <View style={styles.commentActionsRow}>
-                    {childList.length > 0 && (
-                      <TouchableOpacity
-                        style={styles.toggleChildBtn}
-                        onPress={() => handleToggleChildCollapse(item.id)}
-                      >
-                        <Text style={[styles.toggleChildText, { color: theme.badge }]}>
-                          {isChildExpanded ? '▲ Hide Replies' : `▼ View ${childList.length} Replies`}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-
-                    <TouchableOpacity
-                      style={styles.replyButton}
-                      onPress={() => handleReplyPress(item)}
-                    >
-                      <Text style={styles.replyButtonText}>reply</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Collapsible Child Comments Container */}
-                  {childList.length > 0 && isChildExpanded && (
                     <View
                       style={[
-                        styles.childContainer,
+                        styles.commentBubbleBox,
                         { borderColor: theme.border, backgroundColor: theme.bg },
                       ]}
                     >
-                      {childList.map((child, cIdx) => {
-                        const childCreator = child.createdby || child.creator || 'Replier';
-                        const childMerged = [child.review1, child.review2]
-                          .filter((r) => r && String(r).trim() !== '')
-                          .join(' ');
-
-                        return (
-                          <View key={child.id || `child-${cIdx}`} style={styles.childItemRow}>
-                            <Text style={styles.childCreatorText}>↳ {childCreator}</Text>
-                            <View style={styles.childBubbleBox}>
-                              <Text style={styles.commentContentText}>
-                                {childMerged || 'child comment'}
-                              </Text>
-                            </View>
-                            <TouchableOpacity
-                              style={styles.replyButton}
-                              onPress={() => handleReplyPress(child)}
-                            >
-                              <Text style={styles.replyButtonText}>reply</Text>
-                            </TouchableOpacity>
-                          </View>
-                        );
-                      })}
+                      <Text style={styles.commentContentText}>
+                        {mergedComment || 'comments'}
+                      </Text>
                     </View>
-                  )}
+
+                    <View style={styles.commentActionsRow}>
+                      {childList.length > 0 && (
+                        <TouchableOpacity
+                          style={styles.toggleChildBtn}
+                          onPress={() => handleToggleChildCollapse(item.id)}
+                        >
+                          <Text style={[styles.toggleChildText, { color: theme.badge }]}>
+                            {isChildExpanded ? '▲ Hide Replies' : `▼ View ${childList.length} Replies`}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+
+                      <TouchableOpacity
+                        style={styles.replyButton}
+                        onPress={() => handleReplyPress(item)}
+                      >
+                        <Text style={styles.replyButtonText}>reply</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {childList.length > 0 && isChildExpanded && (
+                      <View
+                        style={[
+                          styles.childContainer,
+                          { borderColor: theme.border, backgroundColor: theme.bg },
+                        ]}
+                      >
+                        {childList.map((child, cIdx) => {
+                          const childCreator = child.createdby || child.creator || 'Replier';
+                          const childMerged = [child.review1, child.review2]
+                            .filter((r) => r && String(r).trim() !== '')
+                            .join(' ');
+
+                          return (
+                            <View key={child.id || `child-${cIdx}`} style={styles.childItemRow}>
+                              <Text style={styles.childCreatorText}>↳ {childCreator}</Text>
+                              <View style={styles.childBubbleBox}>
+                                <Text style={styles.commentContentText}>
+                                  {childMerged || 'child comment'}
+                                </Text>
+                              </View>
+                              <TouchableOpacity
+                                style={styles.replyButton}
+                                onPress={() => handleReplyPress(child)}
+                              >
+                                <Text style={styles.replyButtonText}>reply</Text>
+                              </TouchableOpacity>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+
+              {hasMore && (
+                <View style={styles.bottomActionRow}>
+                  <TouchableOpacity style={styles.showMoreButton} onPress={handleShowMore}>
+                    <Text style={styles.showMoreText}>show more</Text>
+                  </TouchableOpacity>
                 </View>
-              );
-            })}
+              )}
+            </ScrollView>
+          )}
+        </View>
+      </div>
 
-            {/* Bottom Show More Action */}
-            {hasMore && (
-              <View style={styles.bottomActionRow}>
-                <TouchableOpacity style={styles.showMoreButton} onPress={handleShowMore}>
-                  <Text style={styles.showMoreText}>show more</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </ScrollView>
-        )}
-      </View>
-
-      {/* Topmost Browser Modal Overlay for NewPanel */}
       <Modal
         visible={showNewModal}
         transparent={true}
@@ -314,13 +324,12 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ objectid, pid }) => {
               styles.newPanelModalBox,
               isDesktop ? styles.desktopModalSize : styles.mobileModalSize,
             ]}
-            // Prevent overlay dismissal when clicking inside the modal box
             // @ts-ignore
             onClick={(e: any) => e && typeof e.stopPropagation === 'function' && e.stopPropagation()}
           >
             <NewPanel
               tableName={REVIEW_PANEL}
-              columnForLayout = {1}
+              columnForLayout={1}
               parentid={modalPid}
               title={modalTitle}
               onClose={handleCloseModal}
@@ -359,16 +368,17 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  // --- Group Fieldset Container ---
+  // --- Group Fieldset Container with Soft Grey Border ---
   commentListBorderBox: {
     borderWidth: 1,
-    borderColor: '#000000',
+    borderColor: '#E2E8F0', // Soft grey border requested
     borderRadius: 2,
     padding: 16,
     paddingTop: 24,
     position: 'relative',
     minHeight: 180,
     backgroundColor: '#FFFFFF',
+    width: '100%',
   },
   borderBoxTitleBadge: {
     position: 'absolute',
