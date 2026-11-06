@@ -428,9 +428,24 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     if (Platform.OS === 'web') {
       return (
         <div
-          style={{ width: '100%', wordBreak: 'break-word', overflowX: 'auto' }}
-          dangerouslySetInnerHTML={{ __html: rawHtml }}
-        />
+          style={{
+            width: '100%',
+            wordBreak: 'break-word',
+            overflowX: 'auto',
+            color: '#000000',
+          }}
+        >
+          <style dangerouslySetInnerHTML={{ __html: `
+            .forced-black-content *, 
+            .forced-black-content {
+              color: #000000 !important;
+            }
+          ` }} />
+          <div
+            className="forced-black-content"
+            dangerouslySetInnerHTML={{ __html: rawHtml }}
+          />
+        </div>
       );
     }
 
@@ -1164,7 +1179,7 @@ const styles = StyleSheet.create({
   },
   specHtmlText: {
     fontSize: 12,
-    color: '#0F172A',
+    color: '#000000',
     lineHeight: 18,
     flexWrap: 'wrap',
   },

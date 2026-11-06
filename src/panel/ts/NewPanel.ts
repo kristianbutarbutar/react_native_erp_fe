@@ -25,7 +25,8 @@ export interface CreateColumnItem {
 
 export interface CreateFormPayload {
   sessionToken?: string;
-  tableName: string;
+  tableName?: string;
+  objectid?: string;
   columns: CreateColumnItem[];
   sessionId?: string;
 }
@@ -104,7 +105,7 @@ export async function createForm(
   payload: CreateFormPayload,
   endpoint: string = CREATE_OBJECT_ENDPOINT
 ): Promise<CreateFormResult> {
-  const tableName = payload?.tableName?.trim();
+  const tableName = payload?.tableName?.trim() || payload?.objectid?.trim();
 
   if (!tableName) {
     return {

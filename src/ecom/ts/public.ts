@@ -270,13 +270,13 @@ export const loadCookies = async (daysToExpire: number = 365): Promise<boolean> 
         return false;
     }
 
-    const hasConsent = await showCustomModal({
+    const hasConsent = true; /*await showCustomModal({
         title: 'Cookie Consent',
         message: 'We use cookies to identify your device and improve your experience. Do you accept storing your device identifier in cookies?',
         showCancel: true,
         confirmText: 'Accept',
         cancelText: 'Decline',
-    });
+    });*/
 
     if (hasConsent) {
         const deviceId = clientInfo();
