@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { showForm, getList } from './../apiService';
 import { doSearch } from './ts/SearchPanel';
+import { parent_onsearch } from './../global';
 
 export interface ColumnSchema {
     id?: string;
@@ -25,6 +26,7 @@ export interface ColumnSchema {
 
 export interface SearchPanelProps {
     visible?: boolean;
+    parentid?: string;
     onClose?: () => void;
     onSearch?: (searchResult: any) => void;
     objectid?: string;
@@ -96,6 +98,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
     onClose,
     onSearch,
     objectid = '',
+    parentid,
     sessionid = '',
     title = 'Search Form Records',
     children,
@@ -338,8 +341,15 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
         setErrorMessage('');
 
         try {
-            const searchArray = columns.map((col) => {
+            let searchArray = columns.map((col) => {
                 const key = col.col_name.toLowerCase();
+                if(key===parent_onsearch && parentid)
+                {
+                    return {     
+                        col_name: col.col_name,
+                        value: parentid,
+                    }
+                }
                 return {
                     col_name: col.col_name,
                     value: searchData[key] ?? '',

@@ -388,7 +388,6 @@ export const NewPanel: React.FC<NewPanelProps> = ({
   const handleSave = async () => {
     const trimmedTableName = tableName?.trim();
     if (!trimmedTableName) {
-      alert('Objectid is missing.');
       return;
     }
 
@@ -406,9 +405,9 @@ export const NewPanel: React.FC<NewPanelProps> = ({
         if (htmlType === 'file' && Array.isArray(filesToUpload) && filesToUpload.length > 0) {
           const uploadResult = await doUpload({
             files: filesToUpload,
-            sessionid: sessionId || '',
+            sessionid: sessionToken || '',
           });
-
+          //console.log("sessionToken > ", sessionToken, "handleSave > doUpload > uploadResult > ", JSON.stringify(uploadResult));
           if (uploadResult && uploadResult.success) {
             finalFormData[key] = uploadResult.data.id;
           } else {

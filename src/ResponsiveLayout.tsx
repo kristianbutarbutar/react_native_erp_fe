@@ -549,8 +549,6 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ domainFunc }
           filterColumns: ['root_menu', 'label'],
         });
 
-        console.log("loadLeftMenu > menuConfigResponse > ", JSON.stringify(menuConfigResponse));
-
         const menuConfigRecords = menuConfigResponse.data;
 
         const results = await Promise.all(
@@ -883,7 +881,7 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ domainFunc }
                     } else if (isCustomerPortal) {
                       domainFunc("customer portal");
                     } else {
-                      console.log(`Clicked top right menu: ${menuItem.label}`);
+                      ;//console.log(`Clicked top right menu: ${menuItem.label}`);
                     }
                   }}
                 >

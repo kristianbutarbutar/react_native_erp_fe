@@ -368,11 +368,8 @@ export const ObjectRecords: React.FC<ObjectRecordsProps> = ({
             
             /** SearcPanel was the last triggered search */
             if(searchSharedPayload){
-                console.log("queryPayload > before > ", JSON.stringify(queryPayload));
-
                 queryPayload.tableName = searchSharedPayload.tableName
                 queryPayload.whereClause = searchSharedPayload.whereClause;
-                console.log("queryPayload > after > ", JSON.stringify(searchSharedPayload));
             }
 
             const response = await tableRecords(queryPayload);

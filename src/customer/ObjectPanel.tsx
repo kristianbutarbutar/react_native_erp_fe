@@ -376,7 +376,6 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
 
     const searchSelectionsFunction = (search: any) => {
         setSearchSelections(search);
-        console.log("ObjectPanel > searchSelectionsFunction > ", JSON.stringify(search));
     };
 
     const extractTabArray = (response: any): any[] => {
@@ -407,12 +406,9 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
                 row_end: end,
             };
             /** override if the SearchPanel trigger latest search */
-            if (searchSharedPayload) {
-                console.log("queryPayload > before > ", JSON.stringify(queryPayload));
-
+            if (searchSharedPayload && searchSharedPayload.tableName.trim() === targetFormId.trim()) {
                 queryPayload.tableName = searchSharedPayload.tableName
                 queryPayload.whereClause = searchSharedPayload.whereClause;
-                console.log("queryPayload > after > ", JSON.stringify(searchSharedPayload));
             }
 
             const response = await tableRecords(queryPayload);
@@ -461,11 +457,8 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
                 parenttabid: pid,
                 sessionId,
             };
-            console.log(" before get parent tab: > ", JSON.stringify(__payload));
 
             const res = await getParentTab(__payload);
-
-            console.log(" after get parent tab: > res > ", JSON.stringify(res));
 
             if (res.success && res.data) {
                 const rawData = res.data?.data || res.data;
@@ -562,14 +555,13 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
             dropActionBoxesFromLevel(tab.level + 1);
         }
 
-        if (parentrecordid && parentrecordid.trim() !== '' && parentobjectid && parentobjectid !== null) {
+        if (parentrecordid && parentobjectid && parentrecordid.trim() !== '' && parentobjectid !== '') {
             setHeaderParentRecordId(parentrecordid);
             setHeaderParentObjectid(parentobjectid);
         } else {
             setHeaderParentRecordId('');
             setHeaderParentObjectid('');
         }
-
         fetchRecords(tabFormId, parentrecordid, 1, PAGE_SIZE);
     };
 
@@ -1129,6 +1121,7 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
                         <SearchPanel
                             visible={isSearchPanelOpen}
                             objectid={currentFormId}
+                            parentid={pageParentId}
                             sessionid={sessionId}
                             title={`Search ${formLabel}`}
                             onClose={() => setIsSearchPanelOpen(false)}

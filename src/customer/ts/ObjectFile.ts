@@ -106,7 +106,6 @@ export async function doUpload(
             message: '',
             files: formattedFiles, htmleditor: inputHtmlEditor, recordid: recordid,
         };
-        //console.log("doUpload > input.sessionid > ", input.sessionid);
 
         const response = await fetch(endpoint, {
             method: 'POST',

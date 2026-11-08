@@ -14,6 +14,7 @@ export const CHART_OBJECT_ID = 'd62c95b6-669a-422b-b9ba-a73a2b9fbc82';
 export const EC_HTML_CONTENT = 'c5ad252b-81eb-410e-b506-bbcc194ed64c';
 export const loader_left_menu = "f17f188a-288f-4bf0-b1c2-f21731b480f6";
 export const object_telemetry = "2cd3a104-540a-4e18-b792-14d3f3af598e";
+export const parent_onsearch = "pid";
 //export const loader_left_menu = "727d0327-fda5-428b-a79e-104e71fa9920";
 
 export const DOMAIN_TOUID_AGENT = () => {
