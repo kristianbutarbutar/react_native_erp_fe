@@ -17,6 +17,7 @@ import {
 import { loadTabs, getTabs, type LoadTabsPayload } from './ts/Configuration';
 import { dropMenu } from './mnt/Maintenance';
 import { renderFontAwesomeIcon } from './../customer/FontAwesomeIcon';
+import {object_mn} from '../global';
 
 // Dynamic panel/component imports
 import FormsChilds from './FormsChilds';
@@ -59,11 +60,11 @@ export interface ConfigurationProps {
 }
 
 const DEFAULT_PARENT_PAYLOAD: LoadTabsPayload = {
-    tableName: 'e11f7c82-419b-4e12-b94d-7a3b2c1d0e5f',
+    objectid: object_mn,
     whereClause: [
         { col_name: 'level', value: 1, type: 'INT', operator: '=' },
         { col_name: 'pid', value: 'ROOT', type: 'STRING', operator: '=' },
-    ],
+    ]
 };
 
 const SESSION_ID = 'sess_12345';
@@ -430,7 +431,7 @@ export const Configuration: React.FC<ConfigurationProps> = ({ children }) => {
 
         try {
             const childPayload: LoadTabsPayload = {
-                tableName: 'e11f7c82-419b-4e12-b94d-7a3b2c1d0e5f',
+                objectid: object_mn,
                 whereClause: [
                     { col_name: 'level', value: 2, type: 'INT', operator: '=' },
                     { col_name: 'pid', value: parentId, type: 'STRING', operator: '=' },

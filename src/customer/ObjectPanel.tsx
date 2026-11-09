@@ -393,7 +393,6 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
             setTotalRecords(0);
             return;
         }
-
         setLoading(true);
         setError('');
 
@@ -555,7 +554,7 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
             dropActionBoxesFromLevel(tab.level + 1);
         }
 
-        if (parentrecordid && parentobjectid && parentrecordid.trim() !== '' && parentobjectid !== '') {
+        if (parentrecordid && parentobjectid && parentrecordid.trim() !== '' && parentobjectid.trim() !== '') {
             setHeaderParentRecordId(parentrecordid);
             setHeaderParentObjectid(parentobjectid);
         } else {

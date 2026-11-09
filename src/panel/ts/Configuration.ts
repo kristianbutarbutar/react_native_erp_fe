@@ -10,7 +10,8 @@ export interface WhereClauseItem {
 }
 
 export interface LoadTabsPayload {
-    tableName: string;
+    tableName?: string;
+    objectid: string;
     whereClause?: WhereClauseItem[];
     sessionId?: string;
     [key: string]: any;
@@ -35,7 +36,7 @@ export interface GetTabsResult {
 }
 
 const DEFAULT_LOAD_TABS_PAYLOAD: LoadTabsPayload = {
-    tableName: '',
+    objectid: '',
     whereClause: [
         { col_name: 'level', value: 1, type: 'INT', operator: '=' },
         { col_name: 'pid', value: 'ROOT', type: 'STRING', operator: '=' },
@@ -55,8 +56,8 @@ export async function loadTabs(
 ): Promise<LoadTabsResult> {
     try {
         const apiPayload: LoadTabsPayload = {
-            tableName: payload?.tableName ?? DEFAULT_LOAD_TABS_PAYLOAD.tableName,
-            whereClause: payload?.whereClause ?? DEFAULT_LOAD_TABS_PAYLOAD.whereClause,
+            objectid: payload?.objectid,
+            whereClause: payload?.whereClause,
             ...(payload?.sessionId ? { sessionId: payload.sessionId } : {}),
         };
 
@@ -101,17 +102,13 @@ export async function getTabs(
     try {
         const requestPayload = {
             objectid: input.objectid,
-            columns: [
-                {
-                    col_name: 'pid',
-                    value: input.parenttabid,
-                },
+            whereClause: [ { col_name: 'pid', value: input.parenttabid},
             ],
             filterColumns: ['id', 'pid', 'label', 'level', 'target_tsx', 'formid', 'icon'],
             recordid: input.recordid,
         };
         //console.log("getTabs > endpoint = ", QUERY_TABS_ENDPOINT, " Payload = ", JSON.stringify(requestPayload));
-        const response = await fetch(QUERY_TABS_ENDPOINT, {
+        const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

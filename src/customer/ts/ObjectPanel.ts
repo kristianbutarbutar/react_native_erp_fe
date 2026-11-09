@@ -1,9 +1,10 @@
 // customer/ObjectPanel.ts
 
-import { DOMAIN_WEB, DOMAIN_QONLY_WEB } from '../../global';
+import { DOMAIN_WEB, DOMAIN_QONLY_WEB, object_mn } from '../../global';
 
 export const QUERY_OBJECT_ENDPOINT = `${DOMAIN_WEB()}/api/query-object`;
 export const QUERY_TABS_ENDPOINT = `${DOMAIN_QONLY_WEB()}/api/inquery`;
+
 
 export interface WhereClauseItem {
     col_name: string;
@@ -87,7 +88,7 @@ export async function getTabs(
     try {
         const requestPayload = {
             objectid: input.objectid,
-            columns: input.columns || [],
+            whereClause: input.columns || [],
             filterColumns: input.filterColumns || [],
             recordid: input.recordid,
             ...(input.sessionId ? { sessionId: input.sessionId } : {}),
@@ -133,7 +134,7 @@ export async function getParentTab(
     endpoint?: string
 ): Promise<GetTabsResult> {
     const tabsPayload: GetTabsPayload = {
-        objectid: 'e11f7c82-419b-4e12-b94d-7a3b2c1d0e5f',
+        objectid: object_mn, //'e11f7c82-419b-4e12-b94d-7a3b2c1d0e5f',
         columns: [
             {
                 col_name: 'id',
