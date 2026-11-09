@@ -10,6 +10,7 @@ const SAVE_OBJECT_ENDPOINT = `${API_BASE_URL}/api/save-object`;
 const GET_OBJECT_SCHEMA_ENDPOINT = `${API_BASE_URL}/api/get-object-schema`;
 const COL_LIST_ENDPOINT = DOMAIN_WEB() + `${API_BASE_URL}/api/colList`;
 const TRACK_VIEW_ENDPOINT = `${API_BASE_URL}/api/intent`;
+const COMMERCE_SEARCH_ENDPOINT = `${API_BASE_URL}/api/prq`;
 
 export interface APIPayload {
   id: string;
@@ -67,6 +68,10 @@ export interface TrackViewPayload {
   sessionid: string;
 }
 
+export interface SearchCommercePayload {
+  searchtext: string;
+}
+
 /**
  * Loads menu items from backend API via POST and captures formid field
  * @param level - Numeric level filter (e.g. 2)
@@ -94,7 +99,6 @@ export const menuLoader = async (level: number, pid: string): Promise<MenuItem[]
       throw new Error(`Server returned HTTP status ${response.status}`);
     }
 
-    // JSON response automatically maps object properties, including 'formid'
     const data: MenuItem[] = await response.json();
     return data;
   } catch (error) {
@@ -109,7 +113,6 @@ export const menuLoader = async (level: number, pid: string): Promise<MenuItem[]
  */
 export const getTableRecords = async <T = any>(queryParams: object): Promise<T> => {
   try {
-    //console.log("before getTableRecords ", JSON.stringify(queryParams));
     const response = await fetch(QUERY_OBJECT_IN_TABLE_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -123,7 +126,6 @@ export const getTableRecords = async <T = any>(queryParams: object): Promise<T> 
     }
 
     const data: T = await response.json();
-
     return data;
   } catch (error) {
     console.error('Error calling getTableRecords API:', error);
@@ -137,7 +139,6 @@ export const getTableRecords = async <T = any>(queryParams: object): Promise<T> 
  */
 export const showForm = async <T = any>(payload: ShowFormPayload): Promise<T> => {
   try {
-    //console.log("before showForm ", JSON.stringify(payload));
     const response = await fetch(GET_OBJECT_SCHEMA_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -153,7 +154,6 @@ export const showForm = async <T = any>(payload: ShowFormPayload): Promise<T> =>
     }
 
     const data: T = await response.json();
-
     (data as any).sessionToken = sessionToken;
 
     return data;
@@ -169,7 +169,6 @@ export const showForm = async <T = any>(payload: ShowFormPayload): Promise<T> =>
  */
 export const getList = async <T = any>(payload: GetListPayload): Promise<T> => {
   try {
-    //console.log("before getList ", JSON.stringify(payload));
     const response = await fetch(COL_LIST_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -183,7 +182,6 @@ export const getList = async <T = any>(payload: GetListPayload): Promise<T> => {
     }
 
     const data: T = await response.json();
-    //console.log("getList request ", JSON.stringify(payload), " result: ", JSON.stringify(data));
     return data;
   } catch (error) {
     console.error('Error calling getList API:', error);
@@ -222,8 +220,6 @@ export const getObjectRecords = async <T = any>(payload: GetObjectRecordsPayload
  */
 export const doSave = async <T = any>(payload: DoSavePayload): Promise<T> => {
   try {
-    console.log("before doSave ", JSON.stringify(payload));
-
     const response = await fetch(SAVE_OBJECT_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -251,7 +247,6 @@ export const doSave = async <T = any>(payload: DoSavePayload): Promise<T> => {
  */
 export const trackView = async <T = any>(payload: TrackViewPayload): Promise<T> => {
   try {
-
     const response = await fetch(TRACK_VIEW_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -261,7 +256,37 @@ export const trackView = async <T = any>(payload: TrackViewPayload): Promise<T> 
       body: JSON.stringify(payload),
     });
 
-    if (!response.status) {
+    if (!response.ok) {
+      throw new Error(`Server returned HTTP status ${response.status}`);
+    }
+
+    const data: T = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error calling trackView API:', error);
+    throw error;
+  }
+};
+
+/**
+ * Searches commerce records via /api/prq with lowercase text normalization
+ * @param payload - Object containing searchtext string
+ */
+export const searchCommerce = async <T = any>(payload: SearchCommercePayload): Promise<T> => {
+  const formattedPayload = {
+    searchtext: payload.searchtext ? payload.searchtext.toLowerCase() : '',
+  };
+
+  try {
+    const response = await fetch(COMMERCE_SEARCH_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formattedPayload),
+    });
+
+    if (!response.ok) {
       throw new Error(`Server returned HTTP status ${response.status}`);
     }
 
@@ -269,7 +294,7 @@ export const trackView = async <T = any>(payload: TrackViewPayload): Promise<T> 
 
     return data;
   } catch (error) {
-    console.error('Error calling trackView API:', error);
+    console.error('Error calling searchCommerce API:', error);
     throw error;
   }
 };

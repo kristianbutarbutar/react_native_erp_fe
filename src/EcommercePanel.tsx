@@ -6,9 +6,13 @@ import {
   View,
   TouchableOpacity,
   ScrollView,
+  TextInput,
   useWindowDimensions,
   Platform,
   ActivityIndicator,
+  Animated,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import ProductPanel from './ecom/ProductPanel';
 import { getObjectRecords } from './apiService';
@@ -60,6 +64,57 @@ export const EcommercePanel: React.FC<EcommercePanelProps> = ({ domainFunc, subd
   const [cartOrderRecord, setCartOrderRecord] = useState<CartRecord | null>(null);
   const [loadingEditRecord, setLoadingEditRecord] = useState<boolean>(false);
   const [showGuestChatModal, setShowGuestChatModal] = useState<boolean>(false);
+
+  // Search States
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isSearch, setIsSearch] = useState<boolean>(false);
+  const [isDesktopSearchFocused, setIsDesktopSearchFocused] = useState<boolean>(false);
+  const [isMobileSearchVisible, setIsMobileSearchVisible] = useState<boolean>(false);
+
+  // Animated opacity for search prompt / "Search here" animation
+  const searchPromptAnim = useRef(new Animated.Value(0.4)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(searchPromptAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(searchPromptAnim, { toValue: 0.3, duration: 900, useNativeDriver: true }),
+      ])
+    ).start();
+  }, [searchPromptAnim]);
+
+  // Mobile Hamburger Menu Toggle State
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+
+  const handleSearchSubmit = () => {
+      setIsSearch(true);
+  };
+
+  const resetSearchSubmit = () => {
+      setIsSearch(false);
+  };
+
+  // Scroll-aware header visibility state for mobile dimension
+  const [isHeaderVisible, setIsHeaderVisible] = useState<boolean>(true);
+  const lastScrollY = useRef(0);
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (isDesktop) return; // Keep header fixed on desktop
+
+    const currentY = event.nativeEvent.contentOffset.y;
+    const diff = currentY - lastScrollY.current;
+
+    if (currentY <= 15) {
+      setIsHeaderVisible(true);
+    } else if (diff > 2) {
+      setIsHeaderVisible(false);
+      setIsMobileSearchVisible(false);
+      if (isMobileMenuOpen) setIsMobileMenuOpen(false);
+    } else if (diff < -2) {
+      setIsHeaderVisible(true);
+    }
+    lastScrollY.current = currentY;
+  };
 
   const isDarkTheme = themeColor === PALETTE.blue;
   const textColor = isDarkTheme ? PALETTE.textLight : PALETTE.textDark;
@@ -165,142 +220,356 @@ export const EcommercePanel: React.FC<EcommercePanelProps> = ({ domainFunc, subd
 
   return (
     <View style={[styles.container, { backgroundColor: themeColor }]}>
-      <View style={[styles.top1Box, { backgroundColor: themeColor }]}>
-        <View style={styles.top1BoxLeft}>
-          <View style={styles.colorPaletteGroup}>
-            <TouchableOpacity
-              style={[styles.colorBtn, { backgroundColor: PALETTE.blue }, themeColor === PALETTE.blue && styles.colorBtnActive]}
-              onPress={() => setThemeColor(PALETTE.blue)}
-              accessibilityLabel="Set theme to Slate Blue"
-            />
-            <TouchableOpacity
-              style={[styles.colorBtn, { backgroundColor: PALETTE.beige }, themeColor === PALETTE.beige && styles.colorBtnActive]}
-              onPress={() => setThemeColor(PALETTE.beige)}
-              accessibilityLabel="Set theme to Warm Beige"
-            />
-            <TouchableOpacity
-              style={[styles.colorBtn, { backgroundColor: PALETTE.sage }, themeColor === PALETTE.sage && styles.colorBtnActive]}
-              onPress={() => setThemeColor(PALETTE.sage)}
-              accessibilityLabel="Set theme to Sage Green"
-            />
+      {(isDesktop || isHeaderVisible) && (
+        <View style={[styles.top1Box, { backgroundColor: themeColor }]}>
+          <View style={styles.top1BoxLeft}>
+            <View style={styles.colorPaletteGroup}>
+              <TouchableOpacity
+                style={[styles.colorBtn, { backgroundColor: PALETTE.blue }, themeColor === PALETTE.blue && styles.colorBtnActive]}
+                onPress={() => setThemeColor(PALETTE.blue)}
+                accessibilityLabel="Set theme to Slate Blue"
+              />
+              <TouchableOpacity
+                style={[styles.colorBtn, { backgroundColor: PALETTE.beige }, themeColor === PALETTE.beige && styles.colorBtnActive]}
+                onPress={() => setThemeColor(PALETTE.beige)}
+                accessibilityLabel="Set theme to Warm Beige"
+              />
+              <TouchableOpacity
+                style={[styles.colorBtn, { backgroundColor: PALETTE.sage }, themeColor === PALETTE.sage && styles.colorBtnActive]}
+                onPress={() => setThemeColor(PALETTE.sage)}
+                accessibilityLabel="Set theme to Sage Green"
+              />
+            </View>
+
+            <View style={styles.headerVideoContainer}>
+              {Platform.OS === 'web' ? (
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  style={{ height: '18px', width: 'auto', display: 'block', objectFit: 'contain', background: 'transparent' }}
+                >
+                  <source src="brand_logo.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              ) : (
+                <Text style={[styles.logoFallbackText, { color: textColor }]}>BRAND</Text>
+              )}
+            </View>
           </View>
 
-          <View style={styles.headerVideoContainer}>
-            {Platform.OS === 'web' ? (
-              <video
-                ref={videoRef}
-                autoPlay
-                loop
-                muted
-                playsInline
-                style={{ height: '18px', width: 'auto', display: 'block', objectFit: 'contain', background: 'transparent' }}
-              >
-                <source src="brand_logo.mp4" type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
-            ) : (
-              <Text style={[styles.logoFallbackText, { color: textColor }]}>BRAND</Text>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.top1BoxRight}>
-          <View style={styles.flagContainer}>
-            <View style={styles.flagRed} />
-            <View style={styles.flagWhite} />
-          </View>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => domainFunc('customer portal')}>
-            <Text style={styles.menuIcon}>🌐</Text>
-            {isDesktop && <Text style={[styles.menuText, { color: textColor }]}>Portal</Text>}
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => domainFunc('management')}>
-            <Text style={styles.menuIcon}>📊</Text>
-            {isDesktop && <Text style={[styles.menuText, { color: textColor }]}>Demo</Text>}
-          </TouchableOpacity>
-
-          <View style={styles.cartAnchorWrapper}>
-            <TouchableOpacity style={styles.menuItem} onPress={handleCartClick}>
-              <View style={styles.cartIconWrapper}>
-                <Text style={styles.menuIcon}>🛒</Text>
-                {cartCount > 0 && (
-                  <View style={styles.badgeContainer}>
-                    <Text style={styles.badgeText}>{cartCount}</Text>
-                  </View>
+          {/* Desktop Search Element */}
+          {isDesktop && (
+            <View style={styles.desktopSearchWrapper}>
+              <View style={styles.desktopSearchInnerContainer}>
+                <Text style={styles.desktopSearchIcon}>🔍</Text>
+                <TextInput
+                  style={[styles.desktopSearchInput, { color: textColor }]}
+                  placeholder=""
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  onSubmitEditing={handleSearchSubmit}
+                  onKeyPress={(e: any) => {
+                    if (e.nativeEvent?.key === 'Enter') {
+                      handleSearchSubmit();
+                    }
+                  }}
+                />
+                {!searchQuery && !isDesktopSearchFocused && (
+                  <Animated.Text style={[styles.desktopSearchAnimationText, { opacity: searchPromptAnim, color: textColor }]}>
+                    Search here...
+                  </Animated.Text>
                 )}
               </View>
-              {isDesktop && <Text style={[styles.menuText, { color: textColor }]}>Cart</Text>}
-            </TouchableOpacity>
+            </View>
+          )}
 
-            {isCartPopupOpen && (
-              <View style={[styles.cartPopupBox, isDesktop ? styles.desktopCartPopup : styles.mobileCartPopup, { maxHeight: isDesktop ? height * 0.5 : '100%' }]}>
-                <View style={styles.cartPopupHeader}>
-                  <Text style={styles.cartPopupTitle}>My Chart Items</Text>
-                  <TouchableOpacity onPress={() => setIsCartPopupOpen(false)}>
-                    <Text style={styles.cartCloseText}>✕</Text>
-                  </TouchableOpacity>
-                </View>
+          {isDesktop ? (
+            <View style={styles.top1BoxRight}>
+              <View style={styles.flagContainer}>
+                <View style={styles.flagRed} />
+                <View style={styles.flagWhite} />
+              </View>
 
-                {loadingCart ? (
-                  <View style={styles.cartLoadingContainer}>
-                    <Text style={styles.cartLoadingText}>Loading chart...</Text>
-                  </View>
-                ) : cartRecords.length === 0 ? (
-                  <View style={styles.cartEmptyContainer}>
-                    <Text style={styles.cartEmptyText}>Your chart is empty.</Text>
-                  </View>
-                ) : (
-                  <ScrollView style={styles.cartScrollArea} contentContainerStyle={styles.cartScrollContent} showsVerticalScrollIndicator={true}>
-                    {cartRecords.map((rec, idx) => (
-                      <View key={`cart-item-${rec.id || idx}`} style={styles.cartItemRow}>
-                        <View style={styles.cartItemInfo}>
-                          <Text style={styles.cartItemName} numberOfLines={2}>
-                            {parseProductName(rec.pid)}
-                          </Text>
-                          <View style={styles.cartItemSubRow}>
-                            <Text style={styles.cartItemQty}>Qty: {rec.order_qty ?? 1}</Text>
-                            <Text style={styles.cartItemPrice}>{formatIDRCurrency(rec.total_price)}</Text>
-                          </View>
-                        </View>
-                        <View style={styles.cartItemActions}>
-                          <TouchableOpacity style={styles.actionIconBtn} onPress={() => handleEditRecord(rec)} disabled={loadingEditRecord}>
-                            <Text style={styles.actionIconText}>✏️</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity style={styles.actionIconBtn} onPress={() => handleDeleteRecord(rec)}>
-                            <Text style={styles.actionIconText}>🗑️</Text>
-                          </TouchableOpacity>
-                        </View>
+              <TouchableOpacity style={styles.menuItem} onPress={() => domainFunc('customer portal')}>
+                <Text style={styles.menuIcon}>🌐</Text>
+                <Text style={[styles.menuText, { color: textColor }]}>Portal</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.menuItem} onPress={() => domainFunc('management')}>
+                <Text style={styles.menuIcon}>📊</Text>
+                <Text style={[styles.menuText, { color: textColor }]}>Demo</Text>
+              </TouchableOpacity>
+
+              <View style={styles.cartAnchorWrapper}>
+                <TouchableOpacity style={styles.menuItem} onPress={handleCartClick}>
+                  <View style={styles.cartIconWrapper}>
+                    <Text style={styles.menuIcon}>🛒</Text>
+                    {cartCount > 0 && (
+                      <View style={styles.badgeContainer}>
+                        <Text style={styles.badgeText}>{cartCount}</Text>
                       </View>
-                    ))}
-                  </ScrollView>
+                    )}
+                  </View>
+                  <Text style={[styles.menuText, { color: textColor }]}>Cart</Text>
+                </TouchableOpacity>
+
+                {isCartPopupOpen && (
+                  <>
+                    <TouchableOpacity
+                      style={styles.dropdownBackdrop}
+                      activeOpacity={1}
+                      onPress={() => setIsCartPopupOpen(false)}
+                    />
+                    <View style={[styles.cartPopupBox, styles.desktopCartPopup, { maxHeight: height * 0.5 }]}>
+                      <View style={styles.cartPopupHeader}>
+                        <Text style={styles.cartPopupTitle}>My Chart Items</Text>
+                        <TouchableOpacity onPress={() => setIsCartPopupOpen(false)}>
+                          <Text style={styles.cartCloseText}>✕</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {loadingCart ? (
+                        <View style={styles.cartLoadingContainer}>
+                          <Text style={styles.cartLoadingText}>Loading chart...</Text>
+                        </View>
+                      ) : cartRecords.length === 0 ? (
+                        <View style={styles.cartEmptyContainer}>
+                          <Text style={styles.cartEmptyText}>Your chart is empty.</Text>
+                        </View>
+                      ) : (
+                        <ScrollView style={styles.cartScrollArea} contentContainerStyle={styles.cartScrollContent} showsVerticalScrollIndicator={true}>
+                          {cartRecords.map((rec, idx) => (
+                            <View key={`cart-item-${rec.id || idx}`} style={styles.cartItemRow}>
+                              <View style={styles.cartItemInfo}>
+                                <Text style={styles.cartItemName} numberOfLines={2}>
+                                  {parseProductName(rec.pid)}
+                                </Text>
+                                <View style={styles.cartItemSubRow}>
+                                  <Text style={styles.cartItemQty}>Qty: {rec.order_qty ?? 1}</Text>
+                                  <Text style={styles.cartItemPrice}>{formatIDRCurrency(rec.total_price)}</Text>
+                                </View>
+                              </View>
+                              <View style={styles.cartItemActions}>
+                                <TouchableOpacity style={styles.actionIconBtn} onPress={() => handleEditRecord(rec)} disabled={loadingEditRecord}>
+                                  <Text style={styles.actionIconText}>✏️</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={styles.actionIconBtn} onPress={() => handleDeleteRecord(rec)}>
+                                  <Text style={styles.actionIconText}>🗑️</Text>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          ))}
+                        </ScrollView>
+                      )}
+                    </View>
+                  </>
                 )}
               </View>
+
+              <TouchableOpacity style={styles.menuItem}>
+                <Text style={styles.menuIcon}>👤</Text>
+                <Text style={[styles.menuText, { color: textColor }]}>Me</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.menuItem} onPress={() => setShowGuestChatModal(true)}>
+                <Text style={styles.menuIcon}>💬</Text>
+                <Text style={[styles.menuText, { color: textColor }]}>Chat</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.mobileRightContainer}>
+              <TouchableOpacity
+                style={styles.mobileSearchIconBtn}
+                onPress={() => setIsMobileSearchVisible(!isMobileSearchVisible)}
+                accessibilityLabel="Toggle Search"
+              >
+                <Text style={styles.menuIcon}>🔍</Text>
+              </TouchableOpacity>
+
+              <View style={styles.hamburgerContainer}>
+                <TouchableOpacity style={styles.hamburgerBtn} onPress={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+                  <Text style={[styles.hamburgerIconText, { color: textColor }]}>{isMobileMenuOpen ? '✕' : '☰'}</Text>
+                </TouchableOpacity>
+
+                {isMobileMenuOpen && (
+                  <>
+                    <TouchableOpacity
+                      style={styles.dropdownBackdrop}
+                      activeOpacity={1}
+                      onPress={() => setIsMobileMenuOpen(false)}
+                    />
+                    <View style={styles.mobileDropdownMenuBox}>
+                      <View style={styles.mobileDropdownHeader}>
+                        <View style={styles.flagContainer}>
+                          <View style={styles.flagRed} />
+                          <View style={styles.flagWhite} />
+                        </View>
+                        <Text style={styles.mobileDropdownTitle}>Menu</Text>
+                      </View>
+
+                      <TouchableOpacity
+                        style={styles.mobileMenuRow}
+                        onPress={() => {
+                          setIsMobileMenuOpen(false);
+                          domainFunc('customer portal');
+                        }}
+                      >
+                        <Text style={styles.menuIcon}>🌐</Text>
+                        <Text style={styles.mobileMenuRowText}>Portal</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.mobileMenuRow}
+                        onPress={() => {
+                          setIsMobileMenuOpen(false);
+                          domainFunc('management');
+                        }}
+                      >
+                        <Text style={styles.menuIcon}>📊</Text>
+                        <Text style={styles.mobileMenuRowText}>Demo</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.mobileMenuRow}
+                        onPress={() => {
+                          setIsMobileMenuOpen(false);
+                          handleCartClick();
+                        }}
+                      >
+                        <View style={styles.cartIconWrapper}>
+                          <Text style={styles.menuIcon}>🛒</Text>
+                          {cartCount > 0 && (
+                            <View style={styles.badgeContainer}>
+                              <Text style={styles.badgeText}>{cartCount}</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={styles.mobileMenuRowText}>Cart ({cartCount})</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity style={styles.mobileMenuRow} onPress={() => setIsMobileMenuOpen(false)}>
+                        <Text style={styles.menuIcon}>👤</Text>
+                        <Text style={styles.mobileMenuRowText}>Me</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.mobileMenuRow}
+                        onPress={() => {
+                          setIsMobileMenuOpen(false);
+                          setShowGuestChatModal(true);
+                        }}
+                      >
+                        <Text style={styles.menuIcon}>💬</Text>
+                        <Text style={styles.mobileMenuRowText}>Chat</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+              </View>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Mobile Search Element with Submit Handlers */}
+      {!isDesktop && isMobileSearchVisible && isHeaderVisible && (
+        <View style={styles.mobileSearchContainer}>
+          <TextInput
+            style={styles.mobileSearchInput}
+            placeholder="Search products..."
+            placeholderTextColor="#94A3B8"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onKeyPress={(e: any) => {
+              if (e.nativeEvent?.key === 'Enter') {
+                handleSearchSubmit();
+              }
+            }}
+          />
+          <Animated.Text style={[styles.mobileSearchPromptText, { opacity: searchPromptAnim }]}>
+            Tap enter to search criteria...
+          </Animated.Text>
+        </View>
+      )}
+
+      {/* Cart Popup for Mobile View */}
+      {!isDesktop && isCartPopupOpen && (
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={styles.modalBackdropTouch} activeOpacity={1} onPress={() => setIsCartPopupOpen(false)} />
+          <View style={[styles.cartPopupBox, styles.mobileCartPopupModal]}>
+            <View style={styles.cartPopupHeader}>
+              <Text style={styles.cartPopupTitle}>My Chart Items</Text>
+              <TouchableOpacity onPress={() => setIsCartPopupOpen(false)}>
+                <Text style={styles.cartCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {loadingCart ? (
+              <View style={styles.cartLoadingContainer}>
+                <Text style={styles.cartLoadingText}>Loading chart...</Text>
+              </View>
+            ) : cartRecords.length === 0 ? (
+              <View style={styles.cartEmptyContainer}>
+                <Text style={styles.cartEmptyText}>Your chart is empty.</Text>
+              </View>
+            ) : (
+              <ScrollView style={styles.cartScrollArea} contentContainerStyle={styles.cartScrollContent} showsVerticalScrollIndicator={true}>
+                {cartRecords.map((rec, idx) => (
+                  <View key={`cart-item-${rec.id || idx}`} style={styles.cartItemRow}>
+                    <View style={styles.cartItemInfo}>
+                      <Text style={styles.cartItemName} numberOfLines={2}>
+                        {parseProductName(rec.pid)}
+                      </Text>
+                      <View style={styles.cartItemSubRow}>
+                        <Text style={styles.cartItemQty}>Qty: {rec.order_qty ?? 1}</Text>
+                        <Text style={styles.cartItemPrice}>{formatIDRCurrency(rec.total_price)}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.cartItemActions}>
+                      <TouchableOpacity style={styles.actionIconBtn} onPress={() => handleEditRecord(rec)} disabled={loadingEditRecord}>
+                        <Text style={styles.actionIconText}>✏️</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.actionIconBtn} onPress={() => handleDeleteRecord(rec)}>
+                        <Text style={styles.actionIconText}>🗑️</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
             )}
           </View>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <Text style={styles.menuIcon}>👤</Text>
-            {isDesktop && <Text style={[styles.menuText, { color: textColor }]}>Me</Text>}
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => setShowGuestChatModal(true)}>
-            <Text style={styles.menuIcon}>💬</Text>
-            {isDesktop && <Text style={[styles.menuText, { color: textColor }]}>Chat</Text>}
-          </TouchableOpacity>
         </View>
-      </View>
+      )}
 
-      <View style={[styles.mainBody, !isDesktop && styles.mainBodyMobile]}>
-        {isDesktop && <View style={[styles.contentBoxLeft, { backgroundColor: PALETTE.white }]} />}
+      {/* Main Body */}
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+        style={[styles.scrollContainer, !isDesktop && !isHeaderVisible && styles.zeroMarginTop]}
+      >
+        <View style={[styles.mainBody, !isDesktop && styles.mainBodyMobile]}>
+          {isDesktop && <View style={[styles.contentBoxLeft, { backgroundColor: PALETTE.white }]} />}
 
-        <View style={[styles.contentBox, !isDesktop && styles.fullWidth, { backgroundColor: PALETTE.white }]}>
-          <ProductPanel sessionid={sessionid} themeColor={themeColor} onChartPress={fetchCartRecords} />
+          <View style={[styles.contentBox, !isDesktop && styles.fullWidth, { backgroundColor: PALETTE.white }]}>
+            <ProductPanel
+              sessionid={sessionid}
+              themeColor={themeColor}
+              onChartPress={fetchCartRecords}
+              searchQuery={isSearch ? searchQuery : ''}
+              searchResetFunc={resetSearchSubmit}
+            />
+          </View>
+
+          {isDesktop && <View style={[styles.contentBoxRight, { backgroundColor: PALETTE.white }]} />}
         </View>
+      </ScrollView>
 
-        {isDesktop && <View style={[styles.contentBoxRight, { backgroundColor: PALETTE.white }]} />}
-      </View>
-
+      {/* Footer Container */}
       <View style={[styles.footer, { backgroundColor: themeColor }]}>
         <Text style={[styles.footerText, { color: textColor }]} numberOfLines={1}>
           © 2026 amgreat.id
@@ -358,7 +627,7 @@ export const EcommercePanel: React.FC<EcommercePanelProps> = ({ domainFunc, subd
 
 const styles = StyleSheet.create({
   container: { flex: 1, height: Platform.OS === 'web' ? ('100vh' as any) : '100%', width: '100%', padding: 6, gap: 4, overflow: 'hidden', position: 'relative' },
-  top1Box: { height: 32, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, borderRadius: 6, zIndex: 100 },
+  top1Box: { height: 32, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 6, borderRadius: 6, zIndex: 100, position: 'relative' },
   top1BoxLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   colorPaletteGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   colorBtn: { width: 14, height: 14, borderRadius: 7 },
@@ -366,19 +635,85 @@ const styles = StyleSheet.create({
   headerVideoContainer: { justifyContent: 'center', alignItems: 'center' },
   logoFallbackText: { fontWeight: 'bold', fontSize: 12 },
   top1BoxRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  
+  desktopSearchWrapper: { position: 'absolute', left: '20%', width: '40%', justifyContent: 'center' },
+  desktopSearchInnerContainer: { flexDirection: 'row', alignItems: 'center', position: 'relative', height: 26, width: '100%' },
+  desktopSearchIcon: { fontSize: 12, marginRight: 6, opacity: 0.7 },
+  desktopSearchInput: { flex: 1, height: 26, backgroundColor: 'transparent', borderWidth: 0, paddingHorizontal: 0, fontSize: 12, outlineStyle: 'none' as any },
+  desktopSearchAnimationText: { position: 'absolute', left: 22, fontSize: 12, fontStyle: 'italic', pointerEvents: 'none' },
+
+  mobileRightContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  mobileSearchIconBtn: { padding: 4, justifyContent: 'center', alignItems: 'center' },
+  mobileSearchContainer: { backgroundColor: '#FFFFFF', padding: 8, borderRadius: 6, borderWidth: 1, borderColor: '#E2E8F0', gap: 4 },
+  mobileSearchInput: { height: 30, borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 4, paddingHorizontal: 8, fontSize: 12, color: '#1E293B', backgroundColor: '#F8FAFC' },
+  mobileSearchPromptText: { fontSize: 10, color: '#64748B', fontStyle: 'italic', textAlign: 'center' },
+
   flagContainer: { width: 18, height: 12, overflow: 'hidden' },
   flagRed: { flex: 1, backgroundColor: '#FF0000' },
   flagWhite: { flex: 1, backgroundColor: '#FFFFFF' },
   menuItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   menuIcon: { fontSize: 12 },
   menuText: { fontSize: 12, fontWeight: '600' },
+  
+  hamburgerContainer: { position: 'relative' },
+  hamburgerBtn: { padding: 4, justifyContent: 'center', alignItems: 'center' },
+  hamburgerIconText: { fontSize: 18, fontWeight: 'bold' },
+  
+  dropdownBackdrop: {
+    position: 'fixed' as any,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
+    backgroundColor: 'transparent',
+  },
+
+  mobileDropdownMenuBox: {
+    position: 'absolute',
+    top: 36,
+    right: 0,
+    width: 200,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 15,
+    zIndex: 2000,
+    paddingVertical: 8,
+  },
+  mobileDropdownHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    gap: 8,
+  },
+  mobileDropdownTitle: { fontSize: 13, fontWeight: '700', color: '#0F172A' },
+  mobileMenuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 10,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#F8FAFC',
+  },
+  mobileMenuRowText: { fontSize: 13, fontWeight: '600', color: '#1E293B' },
+
   cartAnchorWrapper: { position: 'relative' },
   cartIconWrapper: { position: 'relative', justifyContent: 'center', alignItems: 'center' },
   badgeContainer: { position: 'absolute', top: -8, right: -10, backgroundColor: '#EF4444', borderRadius: 10, minWidth: 16, height: 16, paddingHorizontal: 3, justifyContent: 'center', alignItems: 'center', zIndex: 10 },
   badgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '700' },
-  cartPopupBox: { position: 'absolute', top: 36, right: 0, backgroundColor: '#FFFFFF', borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 10, zIndex: 1000, overflow: 'hidden' },
-  desktopCartPopup: { width: 320 },
-  mobileCartPopup: { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0, width: '100vw' as any, height: '100vh' as any, borderRadius: 0 },
+  cartPopupBox: { backgroundColor: '#FFFFFF', borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 10, overflow: 'hidden' },
+  desktopCartPopup: { position: 'absolute', top: 36, right: 0, width: 320, zIndex: 1000 },
+  mobileCartPopupModal: { width: '90%', maxWidth: 380, maxHeight: '80%', zIndex: 1000 },
   cartPopupHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F1F5F9', backgroundColor: '#F8FAFC' },
   cartPopupTitle: { fontSize: 13, fontWeight: '700', color: '#0F172A' },
   cartCloseText: { fontSize: 14, fontWeight: 'bold', color: '#64748B' },
@@ -414,8 +749,8 @@ const styles = StyleSheet.create({
   modalConfirmBtnText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
   orderStageContainer: { width: '100%', height: '100%', backgroundColor: '#FFFFFF', borderRadius: 8, overflow: 'hidden' },
   desktopOrderStageContainer: { width: 600, height: 600, maxHeight: '90%', maxWidth: '90%' },
-  top2Box: { height: 28, borderRadius: 6, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10 },
-  top2BoxText: { fontWeight: '600', fontSize: 11, textAlign: 'center' },
+  scrollContainer: { flex: 1 },
+  zeroMarginTop: { marginTop: 0, paddingTop: 0 },
   mainBody: { flex: 1, flexDirection: 'row', gap: 6, overflow: 'hidden' },
   mainBodyMobile: { flexDirection: 'column' },
   contentBoxLeft: { flex: 1, borderRadius: 6 },

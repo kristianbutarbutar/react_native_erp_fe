@@ -1,5 +1,5 @@
 // customer/ecom/ProductPanel.tsx
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useReducer, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -12,7 +12,7 @@ import {
   Platform,
   Modal,
 } from 'react-native';
-import { getObjectRecords, trackView, showForm } from './../apiService';
+import { getObjectRecords, trackView, showForm, searchCommerce } from './../apiService';
 import ProductDetail from './ProductDetail';
 import { TRACK_VIEW_LOVE_OBJECT_ID, TRACK_VIEW_SHARE_OBJECT_ID, CHART_OBJECT_ID } from './../global';
 import { clientInfo, loadCookies } from './ts/public';
@@ -45,10 +45,12 @@ export interface ProductPanelProps {
   category?: string;
   subcategory?: string;
   shareObjectId?: string;
+  searchQuery?: string;
   loveObjectId?: string;
   desktopProductsPerLine?: number;
   mobileProductsPerLine?: number;
   themeColor?: string;
+  searchResetFunc?: () => void;
   onDetailPress?: (item: ProductItem) => void;
   onOrderPress?: (item: ProductItem) => void;
   onChartPress?: () => void;
@@ -220,7 +222,6 @@ const ProductPhotoBox: React.FC<{
         style={[styles.photoContainer, { height: containerHeight, backgroundColor: '#FFFFFF', borderWidth: 0, borderColor: 'transparent' }]}
         onLayout={handleLayout}
       >
-        {/* Full-bleed photo placeholder covering the outer box */}
         <View style={[styles.photoPlaceholder, { backgroundColor: '#FFFFFF' }]}>
           {loadingPhotos ? (
             <View style={styles.loadingPhotoContainer}>
@@ -251,7 +252,6 @@ const ProductPhotoBox: React.FC<{
           )}
         </View>
 
-        {/* Attached Overlays directly on top of the product photo */}
         {categoryDisplay && (
           <View style={styles.categoryBadgeOverlay}>
             <Text style={styles.categoryText} numberOfLines={1}>
@@ -305,8 +305,10 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
   sessionid,
   category,
   subcategory,
+  searchQuery,
   shareObjectId,
   loveObjectId,
+  searchResetFunc,
   desktopProductsPerLine = 3,
   mobileProductsPerLine = 1,
   themeColor = '#F5F2EB',
@@ -320,6 +322,12 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Architectural Force-Render Trigger via useReducer Counter
+  const [, forceRenderDispatch] = useReducer((x: number) => x + 1, 0);
+  const triggerSelfRender = useCallback(() => {
+    forceRenderDispatch();
+  }, []);
 
   const cookiesLoadedRef = useRef<boolean>(false);
   const [chartCount, setChartCount] = useState<number>(0);
@@ -337,13 +345,17 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
   const computedCardWidth = `calc((100% - ${gridGap * (itemsPerLine - 1)}px) / ${itemsPerLine})`;
 
   useEffect(() => {
+    
     if (!cookiesLoadedRef.current) {
       cookiesLoadedRef.current = true;
       initCookies();
     }
+
     loadProducts();
+
     updateChartCount();
-  }, [category, subcategory]);
+
+  }, [category, subcategory, searchQuery]);
 
   const initCookies = async () => {
     try {
@@ -379,27 +391,19 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
   const loadProducts = async () => {
     setLoading(true);
     setError(null);
-
-    const whereClause: Array<{ column: string; operator: string; value: any }> = [];
-    if (category) whereClause.push({ column: 'category', operator: '=', value: category });
-    if (subcategory) whereClause.push({ column: 'subcategory', operator: '=', value: subcategory });
-
-    const payload = {
-      objectid: TRACK_VIEW_LOVE_OBJECT_ID,
-      whereClause,
-      filterColumns: [],
-      sessionid,
-    };
-
     try {
-      const response = await getObjectRecords(payload);
+      const response = await searchCommerce({ searchtext: searchQuery ? searchQuery : ""});
       if (response && response.data) {
         setProducts(response.data);
+        /*if (searchResetFunc) {
+           searchResetFunc();
+        }*/
       } else {
         setProducts([]);
       }
+      // Explicitly trigger a re-render pass of ProductPanel after products are set
+      triggerSelfRender();
     } catch (err: any) {
-      console.error('Error fetching product records:', err);
       setError(err?.message || 'Failed to load products');
     } finally {
       setLoading(false);
@@ -484,7 +488,6 @@ export const ProductPanel: React.FC<ProductPanelProps> = ({
           {products.map((item, index) => {
             const categoryDisplay = formatCategory(item.category);
             const sellerDisplay = formatSellerName(item.pid);
-
             return (
               <View key={item.id || index} style={[styles.card, { width: computedCardWidth as any, backgroundColor: themeColor }]}>
                 <View style={styles.relativeBox}>

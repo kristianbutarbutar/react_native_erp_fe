@@ -103,6 +103,16 @@ export default defineConfig({
           });
         },
       },
+       '/api/prq': {
+        target: `${NODE_SERVICE}:3001`,
+        changeOrigin: true,
+        secure: false,
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Vite Proxy] Incoming API Call -> Method: ${req.method}, Original URL: ${req.url}, Forwarding to Target: ${options.target}${proxyReq.path}`);
+          });
+        },
+      },
       '/api/get-list': {
         target: `${NODE_SERVICE}:3001`,
         changeOrigin: true,
